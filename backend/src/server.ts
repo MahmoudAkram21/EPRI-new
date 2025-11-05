@@ -905,6 +905,150 @@ app.post('/api/admin/staff', authenticateToken, requireAdmin, async (req, res) =
   }
 });
 
+// Get single staff member (admin)
+app.get('/api/admin/staff/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({ message: 'Staff ID is required' });
+    }
+
+    const staff = await prisma.staff.findUnique({
+      where: { id }
+    });
+
+    if (!staff) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+
+    return res.json({
+      staff
+    });
+  } catch (error: any) {
+    console.error('Admin staff fetch error:', error);
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+    });
+  }
+});
+
+// Update staff member (admin)
+app.put('/api/admin/staff/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (!id) {
+      return res.status(400).json({ message: 'Staff ID is required' });
+    }
+
+    // Check if staff member exists
+    const existingStaff = await prisma.staff.findUnique({
+      where: { id }
+    });
+
+    if (!existingStaff) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+
+    // Update staff member
+    const updatedStaff = await prisma.staff.update({
+      where: { id },
+      data: {
+        name: updateData.name !== undefined ? updateData.name : existingStaff.name,
+        title: updateData.title !== undefined ? updateData.title : existingStaff.title,
+        academic_position: updateData.academic_position !== undefined ? updateData.academic_position : existingStaff.academic_position,
+        current_admin_position: updateData.current_admin_position !== undefined ? updateData.current_admin_position : existingStaff.current_admin_position,
+        ex_admin_position: updateData.ex_admin_position !== undefined ? updateData.ex_admin_position : existingStaff.ex_admin_position,
+        scientific_name: updateData.scientific_name !== undefined ? updateData.scientific_name : existingStaff.scientific_name,
+        picture: updateData.picture !== undefined ? updateData.picture : existingStaff.picture,
+        gallery: updateData.gallery !== undefined ? updateData.gallery : existingStaff.gallery,
+        bio: updateData.bio !== undefined ? updateData.bio : existingStaff.bio,
+        research_interests: updateData.research_interests !== undefined ? updateData.research_interests : existingStaff.research_interests,
+        news: updateData.news !== undefined ? updateData.news : existingStaff.news,
+        email: updateData.email !== undefined ? updateData.email : existingStaff.email,
+        alternative_email: updateData.alternative_email !== undefined ? updateData.alternative_email : existingStaff.alternative_email,
+        phone: updateData.phone !== undefined ? updateData.phone : existingStaff.phone,
+        mobile: updateData.mobile !== undefined ? updateData.mobile : existingStaff.mobile,
+        website: updateData.website !== undefined ? updateData.website : existingStaff.website,
+        google_scholar: updateData.google_scholar !== undefined ? updateData.google_scholar : existingStaff.google_scholar,
+        research_gate: updateData.research_gate !== undefined ? updateData.research_gate : existingStaff.research_gate,
+        academia_edu: updateData.academia_edu !== undefined ? updateData.academia_edu : existingStaff.academia_edu,
+        linkedin: updateData.linkedin !== undefined ? updateData.linkedin : existingStaff.linkedin,
+        facebook: updateData.facebook !== undefined ? updateData.facebook : existingStaff.facebook,
+        twitter: updateData.twitter !== undefined ? updateData.twitter : existingStaff.twitter,
+        google_plus: updateData.google_plus !== undefined ? updateData.google_plus : existingStaff.google_plus,
+        youtube: updateData.youtube !== undefined ? updateData.youtube : existingStaff.youtube,
+        wordpress: updateData.wordpress !== undefined ? updateData.wordpress : existingStaff.wordpress,
+        instagram: updateData.instagram !== undefined ? updateData.instagram : existingStaff.instagram,
+        mendeley: updateData.mendeley !== undefined ? updateData.mendeley : existingStaff.mendeley,
+        zotero: updateData.zotero !== undefined ? updateData.zotero : existingStaff.zotero,
+        evernote: updateData.evernote !== undefined ? updateData.evernote : existingStaff.evernote,
+        orcid: updateData.orcid !== undefined ? updateData.orcid : existingStaff.orcid,
+        scopus: updateData.scopus !== undefined ? updateData.scopus : existingStaff.scopus,
+        publications_count: updateData.publications_count !== undefined ? updateData.publications_count : existingStaff.publications_count,
+        papers_count: updateData.papers_count !== undefined ? updateData.papers_count : existingStaff.papers_count,
+        abstracts_count: updateData.abstracts_count !== undefined ? updateData.abstracts_count : existingStaff.abstracts_count,
+        courses_files_count: updateData.courses_files_count !== undefined ? updateData.courses_files_count : existingStaff.courses_files_count,
+        inlinks_count: updateData.inlinks_count !== undefined ? updateData.inlinks_count : existingStaff.inlinks_count,
+        external_links_count: updateData.external_links_count !== undefined ? updateData.external_links_count : existingStaff.external_links_count,
+        faculty: updateData.faculty !== undefined ? updateData.faculty : existingStaff.faculty,
+        department: updateData.department !== undefined ? updateData.department : existingStaff.department,
+        office_location: updateData.office_location !== undefined ? updateData.office_location : existingStaff.office_location,
+        office_hours: updateData.office_hours !== undefined ? updateData.office_hours : existingStaff.office_hours
+      }
+    });
+
+    return res.json({
+      message: 'Staff member updated successfully',
+      staff: updatedStaff
+    });
+  } catch (error: any) {
+    console.error('Admin staff update error:', error);
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+    });
+  }
+});
+
+// Delete staff member (admin)
+app.delete('/api/admin/staff/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: 'Staff ID is required' });
+    }
+
+    // Check if staff member exists
+    const existingStaff = await prisma.staff.findUnique({
+      where: { id }
+    });
+
+    if (!existingStaff) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+
+    // Delete staff member
+    await prisma.staff.delete({
+      where: { id }
+    });
+
+    return res.json({
+      message: 'Staff member deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Admin staff delete error:', error);
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+    });
+  }
+});
+
 // Department Staff Assignment routes
 app.get('/api/admin/departments/:id/staff', authenticateToken, requireAdmin, async (req, res) => {
   try {

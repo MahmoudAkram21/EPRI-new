@@ -1847,6 +1847,35 @@ app.post('/api/admin/staff', authenticateToken, requireAdmin, async (req, res) =
   }
 });
 
+// Get single staff member (admin)
+app.get('/api/admin/staff/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({ message: 'Staff ID is required' });
+    }
+
+    const staff = await prisma.staff.findUnique({
+      where: { id }
+    });
+
+    if (!staff) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+
+    return res.json({
+      staff
+    });
+  } catch (error: any) {
+    console.error('Admin staff fetch error:', error);
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+    });
+  }
+});
+
 app.put('/api/admin/staff/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;

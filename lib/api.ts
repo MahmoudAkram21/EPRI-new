@@ -1,6 +1,6 @@
 // API client for communicating with the backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000/api';
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
 
 class ApiClient {
   private baseURL: string;
@@ -379,6 +379,10 @@ class ApiClient {
   // Admin Staff API methods
   async getAdminStaff(): Promise<{ staff: any[], total: number }> {
     return this.request<{ staff: any[], total: number }>('/admin/staff');
+  }
+
+  async getAdminStaffMember(id: string): Promise<{ staff: any }> {
+    return this.request<{ staff: any }>(`/admin/staff/${id}`);
   }
 
   async createAdminStaff(staffData: {

@@ -113,7 +113,7 @@ export default function EditStaffPage() {
   const fetchStaffMember = async (staffId: string) => {
     try {
       setFetching(true);
-      const response = await apiClient.getStaff(staffId);
+      const response = await apiClient.getAdminStaffMember(staffId);
       const staff = response.staff;
       
       setStaffMember(staff);
