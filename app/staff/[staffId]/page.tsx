@@ -1,4 +1,3 @@
-import { apiClient } from "@/lib/api"
 import { notFound } from "next/navigation"
 import { PageContainer } from "@/components/page-container"
 import { Section } from "@/components/section"
@@ -30,8 +29,17 @@ import Image from "next/image"
 
 async function getStaff(staffId: string) {
   try {
-    const response = await apiClient.getStaff(staffId)
-    return response.staff
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api'
+    const response = await fetch(`${apiUrl}/staff/${staffId}`, {
+      cache: 'no-store'
+    })
+    
+    if (!response.ok) {
+      return null
+    }
+    
+    const data = await response.json()
+    return data.staff
   } catch (error) {
     console.error("Failed to fetch staff:", error)
     return null

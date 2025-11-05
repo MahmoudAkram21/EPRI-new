@@ -280,6 +280,86 @@ app.get('/api/departments/:id', async (req, res) => {
   }
 });
 
+// Get single staff member by ID (public)
+app.get('/api/staff/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get staff member
+    const staff = await prisma.staff.findUnique({
+      where: { id }
+    });
+    
+    if (!staff) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+    
+    // Get departments this staff member is associated with
+    const staffDepartments = await prisma.$queryRaw`
+      SELECT d.*, s.name as section_name FROM department d
+      INNER JOIN department_staff ds ON d.id = ds.department_id
+      LEFT JOIN department_section s ON d.section_id = s.id
+      WHERE ds.staff_id = ${id}
+    `;
+    
+    // Get research interests as array (if stored as comma-separated string)
+    const researchInterests = staff.research_interests ? 
+      (typeof staff.research_interests === 'string' 
+        ? staff.research_interests.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : Array.isArray(staff.research_interests) 
+          ? staff.research_interests 
+          : []) : [];
+    
+    // Enhance staff data
+    const enhancedStaff = {
+      ...staff,
+      departments: staffDepartments || [],
+      expertise: researchInterests,
+      socialLinks: {
+        email: staff.email,
+        alternativeEmail: staff.alternative_email,
+        phone: staff.phone,
+        mobile: staff.mobile,
+        website: staff.website,
+        googleScholar: staff.google_scholar,
+        researchGate: staff.research_gate,
+        academiaEdu: staff.academia_edu,
+        linkedin: staff.linkedin,
+        facebook: staff.facebook,
+        twitter: staff.twitter,
+        youtube: staff.youtube,
+        instagram: staff.instagram,
+        orcid: staff.orcid,
+        scopus: staff.scopus
+      }
+    };
+    
+    return res.json({ staff: enhancedStaff });
+  } catch (err: any) {
+    console.error('Error fetching staff:', err);
+    return res.status(500).json({ message: 'Failed to fetch staff' });
+  }
+});
+
+// Staff list (public)
+app.get('/api/staff', async (req, res) => {
+  try {
+    const staff = await prisma.staff.findMany({
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    return res.json({
+      staff,
+      total: staff.length
+    });
+  } catch (error) {
+    console.error('Staff fetch error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Services endpoints
 app.get('/api/services', async (req, res) => {
   try {
