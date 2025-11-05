@@ -91,21 +91,44 @@ export default function EquipmentCard({ equipment, department, departmentId }: E
             </div>
 
             {/* Specifications */}
-            {equipment.specifications && equipment.specifications.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-3 text-lg">Technical Specifications</h4>
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <ul className="space-y-2">
-                    {equipment.specifications.map((spec, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="text-primary mt-1 flex-shrink-0">▪</span>
-                        <span className="text-sm text-muted-foreground">{spec}</span>
-                      </li>
-                    ))}
-                  </ul>
+            {(() => {
+              let specifications = equipment.specifications;
+              
+              // Ensure specifications is always an array
+              if (specifications) {
+                // If it's a string, try to parse it as JSON
+                if (typeof specifications === 'string') {
+                  try {
+                    specifications = JSON.parse(specifications);
+                  } catch (e) {
+                    // If parsing fails, treat as empty
+                    specifications = [];
+                  }
+                }
+                // If it's not an array, convert to empty array
+                if (!Array.isArray(specifications)) {
+                  specifications = [];
+                }
+              } else {
+                specifications = [];
+              }
+              
+              return specifications.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3 text-lg">Technical Specifications</h4>
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <ul className="space-y-2">
+                      {specifications.map((spec, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-primary mt-1 flex-shrink-0">▪</span>
+                          <span className="text-sm text-muted-foreground">{spec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Action Buttons */}
             <div className="flex gap-3 pt-4 border-t">

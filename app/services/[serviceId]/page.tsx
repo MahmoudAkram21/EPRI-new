@@ -97,12 +97,35 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ servic
     }
   }
 
+  // Helper function to normalize specifications to always be an array
+  const normalizeSpecifications = (specs: any): string[] => {
+    if (!specs) return [];
+    if (Array.isArray(specs)) return specs;
+    if (typeof specs === 'string') {
+      try {
+        const parsed = JSON.parse(specs);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const loadService = async () => {
     try {
       const response = await apiClient.getService(resolvedParams.serviceId)
-      setService(response.service)
+      // Normalize equipment specifications
+      const normalizedService = {
+        ...response.service,
+        equipment: (response.service.equipment || []).map((eq: any) => ({
+          ...eq,
+          specifications: normalizeSpecifications(eq.specifications)
+        }))
+      };
+      setService(normalizedService)
       // Load other services after getting the current service
-      loadOtherServices(response.service)
+      loadOtherServices(normalizedService)
     } catch (error: any) {
       if (error.status === 404) {
         setNotFoundError(true)
@@ -119,7 +142,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ servic
               price: staticService.price || 0,
               equipment: staticService.equipment?.map(eq => ({
                 ...eq,
-                specifications: eq.specifications || []
+                specifications: normalizeSpecifications(eq.specifications)
               })) || [],
               centerHead: staticService.centerHead,
               tabs: []
@@ -134,7 +157,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ servic
                 price: s.price || 0,
                 equipment: s.equipment?.map(eq => ({
                   ...eq,
-                  specifications: eq.specifications || []
+                  specifications: normalizeSpecifications(eq.specifications)
                 })) || [],
                 centerHead: s.centerHead,
                 tabs: []
@@ -535,8 +558,28 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ servic
                             
                             {(() => {
                               const centerHead = service.centerHead || service.center_head;
-                              const expertise = centerHead?.expertise;
-                              return expertise && expertise.length > 0 && (
+                              let expertise = centerHead?.expertise;
+                              
+                              // Ensure expertise is always an array
+                              if (expertise) {
+                                // If it's a string, try to parse it as JSON
+                                if (typeof expertise === 'string') {
+                                  try {
+                                    expertise = JSON.parse(expertise);
+                                  } catch (e) {
+                                    // If parsing fails, treat as single item or empty
+                                    expertise = [];
+                                  }
+                                }
+                                // If it's not an array, convert to empty array
+                                if (!Array.isArray(expertise)) {
+                                  expertise = [];
+                                }
+                              } else {
+                                expertise = [];
+                              }
+                              
+                              return expertise.length > 0 && (
                                 <div>
                                   <h4 className="font-semibold mb-3 text-slate-900 dark:text-slate-100">Areas of Expertise</h4>
                                   <div className="flex flex-wrap gap-2 justify-center md:justify-start">
