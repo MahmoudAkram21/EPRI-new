@@ -71,7 +71,8 @@ export function VisitorWidget({ className = "" }: VisitorWidgetProps) {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/visitor-stats/stats`);
+      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/visitor-stats/stats`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000'}/api/visitor-stats/stats`);
       if (response.ok) {
         const result = await response.json();
         if (result.success) {

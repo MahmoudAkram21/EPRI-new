@@ -22,7 +22,8 @@ export function VisitorStatsWidget() {
     const fetchStats = async () => {
       try {
         // Fetch total stats
-        const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/visitor-stats/stats`)
+        // const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/visitor-stats/stats`)
+        const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000'}/api/visitor-stats/stats`)
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
           if (statsData.success) {
