@@ -28,9 +28,9 @@ export interface Service {
 export interface ServiceEquipment {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   image?: string;
-  specifications: string[];
+  specifications?: string[] | Record<string, unknown> | null;
 }
 
 export interface ServiceCenterHead {
@@ -46,7 +46,7 @@ export interface ServiceCenterHead {
 
 export interface ServiceTab {
   id: string;
-  service_id: string;
+  serviceId: string;
   title: string;
   content: string;
   order_index: number;

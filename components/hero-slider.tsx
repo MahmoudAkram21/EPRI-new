@@ -99,7 +99,7 @@ export function HeroSlider() {
 
   return (
     <section
-      className="relative h-[600px] sm:h-[650px] md:h-[700px] lg:h-[750px] overflow-hidden"
+      className="relative h-screen overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >

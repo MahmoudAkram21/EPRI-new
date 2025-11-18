@@ -6,20 +6,17 @@ import { useState } from "react"
  
 import { PageContainer } from "@/components/page-container"
 import { Section } from "@/components/section"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, Phone, Mail, Clock } from "lucide-react"
+import { MapPin, Phone, Mail } from "lucide-react"
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
     email: "",
-    phone: "",
     subject: "",
     message: "",
   })
@@ -39,99 +36,81 @@ export default function ContactPage() {
 
   return (
     <PageContainer>
-     
-
-      {/* Hero Section */}
-      <section className="bg-muted/30 py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="font-serif text-5xl font-bold mb-4">Get in Touch</h1>
-            <p className="text-xl text-muted-foreground">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
-            </p>
-          </div>
+      {/* Header Section */}
+      <Section className="py-12">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4 text-slate-900 dark:text-slate-100">
+            Contact Us
+          </h1>
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+            We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+          </p>
         </div>
-      </section>
+      </Section>
 
       {/* Contact Form and Info */}
       <Section>
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
           {/* Contact Form */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Send us a Message</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <div>
+            <Card className="border border-slate-200 dark:border-slate-800">
+              <CardContent className="p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name *</Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name *</Label>
-                      <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="Your name"
+                      className="border-slate-300 dark:border-slate-700"
+                    />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="subject">Subject *</Label>
-                    <Select
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="your.email@example.com"
+                      className="border-slate-300 dark:border-slate-700"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="subject">Subject</Label>
+                    <Input
+                      id="subject"
+                      name="subject"
                       value={formData.subject}
-                      onValueChange={(value) => setFormData({ ...formData, subject: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="general">General Inquiry</SelectItem>
-                        <SelectItem value="admissions">Admissions</SelectItem>
-                        <SelectItem value="courses">Course Information</SelectItem>
-                        <SelectItem value="events">Events</SelectItem>
-                        <SelectItem value="research">Research Collaboration</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      onChange={handleChange}
+                      placeholder="Subject"
+                      className="border-slate-300 dark:border-slate-700"
+                    />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="message">Message *</Label>
+                    <Label htmlFor="message">Message</Label>
                     <Textarea
                       id="message"
                       name="message"
                       value={formData.message}
                       onChange={handleChange}
                       rows={6}
-                      required
+                      placeholder="Your message"
+                      className="border-slate-300 dark:border-slate-700"
                     />
                   </div>
 
-                  <Button type="submit" size="lg" className="w-full md:w-auto">
+                  <Button 
+                    type="submit" 
+                    size="lg" 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  >
                     Send Message
                   </Button>
                 </form>
@@ -140,82 +119,40 @@ export default function ContactPage() {
           </div>
 
           {/* Contact Information */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
+          <div>
+            <Card className="border border-slate-200 dark:border-slate-800">
+              <CardContent className="p-6 space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Phone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Address</h3>
-                    <p className="text-sm text-muted-foreground">
-                      123 Education Drive
-                      <br />
-                      City, State 12345
-                      <br />
-                      United States
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-1">Phone</h3>
+                    <p className="text-slate-600 dark:text-slate-400">+20 2 2274 7000</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-1">Email</h3>
+                    <p className="text-slate-600 dark:text-slate-400">info@epri.sci.eg</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-1">Address</h3>
+                    <p className="text-slate-600 dark:text-slate-400">
+                      1 Ahmed El-Zomor St., Nasr City, Cairo, Egypt
                     </p>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-3">
-                  <Phone className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Phone</h3>
-                    <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
-                    <p className="text-sm text-muted-foreground">+1 (555) 987-6543</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Email</h3>
-                    <p className="text-sm text-muted-foreground">info@epri.edu</p>
-                    <p className="text-sm text-muted-foreground">admissions@epri.edu</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Clock className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Office Hours</h3>
-                    <p className="text-sm text-muted-foreground">Monday - Friday: 9:00 AM - 5:00 PM</p>
-                    <p className="text-sm text-muted-foreground">Saturday: 10:00 AM - 2:00 PM</p>
-                    <p className="text-sm text-muted-foreground">Sunday: Closed</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Links</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <a
-                  href="/courses"
-                  className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Browse Courses
-                </a>
-                <a
-                  href="/events"
-                  className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Upcoming Events
-                </a>
-                <a href="/news" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Latest News
-                </a>
-                <a
-                  href="/top-management"
-                  className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Leadership Team
-                </a>
               </CardContent>
             </Card>
           </div>
@@ -223,43 +160,27 @@ export default function ContactPage() {
       </Section>
 
       {/* Map Section */}
-      <Section className="bg-muted/30">
-        <div className="text-center mb-8">
-          <h2 className="font-serif text-4xl font-bold mb-4">Visit Our Campus</h2>
-          <p className="text-muted-foreground text-lg">We're located in the heart of the education district</p>
+      <Section className="py-8">
+        <div className="max-w-6xl mx-auto">
+          <Card className="border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="w-full h-[400px]">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.5!2d31.3!3d30.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAwJzAwLjAiTiAzMcKwMTgnMDAuMCJF!5e0!3m2!1sen!2seg!4v1234567890123!5m2!1sen!2seg&q=1+Ahmed+El-Zomor+St.,+Nasr+City,+Cairo,+Egypt"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="w-full h-full"
+                  title="EPRI Location Map"
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <Card>
-          <CardContent className="px-0">
-            <div className="bg-muted h-[400px] flex items-center justify-center rounded-lg">
-              <p className="text-muted-foreground">Interactive map placeholder</p>
-            </div>
-          </CardContent>
-        </Card>
       </Section>
-
-      {/* Newsletter Section */}
-      <Section>
-        <Card className="bg-primary text-primary-foreground">
-          <CardContent className="pt-6 text-center">
-            <h2 className="font-serif text-3xl font-bold mb-4">Subscribe to Our Newsletter</h2>
-            <p className="text-xl mb-6 text-primary-foreground/90 max-w-2xl mx-auto">
-              Stay updated with the latest courses, events, and news from EPRI
-            </p>
-            <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/60"
-              />
-              <Button variant="secondary" type="submit">
-                Subscribe
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </Section>
-
-     
     </PageContainer>
   )
 }

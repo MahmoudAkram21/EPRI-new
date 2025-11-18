@@ -178,12 +178,193 @@ export default function LessonPlayerPage() {
   const lessonContent = getLessonContent()
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <ProgressBar progress={progress} courseTitle={course.title} />
+    <div className="min-h-screen flex flex-col bg-slate-900">
+      {/* Top Progress Bar */}
+      <div className="h-1 bg-slate-800">
+        <div 
+          className="h-full bg-primary transition-all duration-300" 
+          style={{ width: `${progress}%` }}
+        />
+      </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Desktop Sidebar (30% width) */}
-        <aside className="hidden lg:block lg:w-[30%] flex-shrink-0 border-r">
+        {/* Main Video/Content Area - Udemy Style */}
+        <main className="flex-1 overflow-y-auto bg-slate-900">
+          <div className="max-w-7xl mx-auto">
+            {/* Video Player Section - Full Width */}
+            <div className="bg-black">
+              {currentLesson.type === "video" && lessonContent.videoUrl && (
+                <div className="aspect-video">
+                  <VideoPlayer url={lessonContent.videoUrl} onEnded={() => !isComplete && handleMarkComplete()} />
+                </div>
+              )}
+
+              {currentLesson.type === "article" && lessonContent.articleContent && (
+                <div className="aspect-video flex items-center justify-center bg-slate-800">
+                  <ArticleContent content={lessonContent.articleContent} />
+                </div>
+              )}
+
+              {currentLesson.type === "quiz" && lessonContent.quiz && (
+                <div className="aspect-video flex items-center justify-center bg-slate-800">
+                  <QuizPlayer quiz={lessonContent.quiz} onComplete={handleMarkComplete} />
+                </div>
+              )}
+            </div>
+
+            {/* Content Below Video - Light Background */}
+            <div className="bg-white dark:bg-slate-900">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                {/* Course Title and Lesson Title */}
+                <div className="mb-4">
+                  <Link 
+                    href={`/courses/${courseId}`}
+                    className="text-sm text-primary hover:underline mb-2 inline-block"
+                  >
+                    {course.title}
+                  </Link>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-3">
+                    {currentLesson.title}
+                  </h1>
+                  <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                    <span>{currentLesson.type.charAt(0).toUpperCase() + currentLesson.type.slice(1)}</span>
+                    <span>•</span>
+                    <span>{currentLesson.duration}</span>
+                    {isComplete && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Completed
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mark Complete Button - Udemy Style */}
+                {currentLesson.type !== "quiz" && !isComplete && (
+                  <div className="mb-6">
+                    <Button 
+                      onClick={handleMarkComplete} 
+                      size="lg" 
+                      className="bg-primary hover:bg-primary/90 text-white font-semibold px-6 py-3 rounded-sm"
+                    >
+                      <CheckCircle2 className="h-5 w-5 mr-2" />
+                      Mark as Complete
+                    </Button>
+                  </div>
+                )}
+
+                {/* Tabs - Udemy Style */}
+                <Tabs defaultValue="overview" className="mb-8">
+                  <TabsList className="bg-transparent border-b border-slate-200 dark:border-slate-700 rounded-none h-auto p-0 mb-6">
+                    <TabsTrigger 
+                      value="overview" 
+                      className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary font-semibold"
+                    >
+                      Overview
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="resources" 
+                      className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary font-semibold"
+                    >
+                      Resources
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="qa" 
+                      className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary font-semibold"
+                    >
+                      Q&A
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="notes" 
+                      className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary font-semibold"
+                    >
+                      Notes
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="overview" className="mt-0">
+                    <LessonOverview
+                      title={currentLesson.title}
+                      description={lessonContent.description || ""}
+                      duration={currentLesson.duration}
+                      objectives={lessonContent.objectives}
+                    />
+                  </TabsContent>
+                  <TabsContent value="resources" className="mt-0">
+                    <ResourcesList resources={lessonContent.resources || []} />
+                  </TabsContent>
+                  <TabsContent value="qa" className="mt-0">
+                    <QADiscussion courseId={courseId} lessonId={lessonId} />
+                  </TabsContent>
+                  <TabsContent value="notes" className="mt-0">
+                    <NotesPanel courseId={courseId} lessonId={lessonId} />
+                  </TabsContent>
+                </Tabs>
+
+                {/* Navigation Buttons - Udemy Style */}
+                <div className="flex items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-700">
+                  {previousLesson ? (
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      asChild 
+                      className="border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      <Link href={`/courses/${courseId}/lesson/${previousLesson.id}`}>
+                        <ChevronLeft className="h-5 w-5 mr-2" />
+                        Previous
+                      </Link>
+                    </Button>
+                  ) : (
+                    <div />
+                  )}
+
+                  {nextLesson ? (
+                    <Button 
+                      size="lg" 
+                      asChild 
+                      className="bg-primary hover:bg-primary/90 text-white font-semibold"
+                    >
+                      <Link href={`/courses/${courseId}/lesson/${nextLesson.id}`}>
+                        Next
+                        <ChevronRight className="h-5 w-5 ml-2" />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button 
+                      size="lg" 
+                      asChild 
+                      className="bg-primary hover:bg-primary/90 text-white font-semibold"
+                    >
+                      <Link href={`/courses/${courseId}`}>Finish Course</Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* Right Sidebar - Course Content - Udemy Style */}
+        <aside className="hidden lg:block w-80 flex-shrink-0 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 overflow-y-auto">
+          <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 z-10">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-bold text-lg text-slate-900 dark:text-slate-100">Course Content</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              {totalLessons} lessons • {Math.round(progress)}% complete
+            </div>
+          </div>
           <CurriculumSidebar
             courseId={courseId}
             curriculum={course.curriculum}
@@ -192,154 +373,34 @@ export default function LessonPlayerPage() {
           />
         </aside>
 
-        {/* Tablet/Mobile Drawer */}
+        {/* Mobile Sidebar Drawer */}
         <div className="lg:hidden">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="fixed top-20 left-4 z-40 bg-background shadow-lg">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="fixed top-24 right-4 z-40 bg-white dark:bg-slate-800 shadow-lg border-slate-300 dark:border-slate-600"
+              >
                 <Menu className="h-4 w-4 mr-2" />
-                Curriculum
+                Content
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0">
-              <AnimatePresence>
-                <motion.div
-                  initial={{ x: -300, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -300, opacity: 0 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  className="h-full"
-                >
-                  <CurriculumSidebar
-                    courseId={courseId}
-                    curriculum={course.curriculum}
-                    currentLessonId={lessonId}
-                    isEnrolled={enrolled}
-                  />
-                </motion.div>
-              </AnimatePresence>
+            <SheetContent side="right" className="w-80 p-0 bg-white dark:bg-slate-800">
+              <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 z-10">
+                <h2 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-2">Course Content</h2>
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  {totalLessons} lessons • {Math.round(progress)}% complete
+                </div>
+              </div>
+              <CurriculumSidebar
+                courseId={courseId}
+                curriculum={course.curriculum}
+                currentLessonId={lessonId}
+                isEnrolled={enrolled}
+              />
             </SheetContent>
           </Sheet>
-        </div>
-
-        {/* Main content (70% width on desktop) */}
-        <main className="flex-1 overflow-y-auto bg-muted/30 lg:w-[70%]">
-          <div className="container mx-auto px-4 py-6 lg:py-8 max-w-6xl">
-            {/* Video Player with 16:9 aspect ratio */}
-            <div className="mb-6">
-              {currentLesson.type === "video" && lessonContent.videoUrl && (
-                <VideoPlayer url={lessonContent.videoUrl} onEnded={() => !isComplete && handleMarkComplete()} />
-              )}
-
-              {currentLesson.type === "article" && lessonContent.articleContent && (
-                <ArticleContent content={lessonContent.articleContent} />
-              )}
-
-              {currentLesson.type === "quiz" && lessonContent.quiz && (
-                <QuizPlayer quiz={lessonContent.quiz} onComplete={handleMarkComplete} />
-              )}
-            </div>
-
-            {/* Lesson Title and Meta */}
-            <div className="mb-6">
-              <h1 className="text-2xl lg:text-3xl font-bold mb-2">{currentLesson.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>{currentLesson.type.charAt(0).toUpperCase() + currentLesson.type.slice(1)}</span>
-                <span>•</span>
-                <span>{currentLesson.duration}</span>
-                {isComplete && (
-                  <>
-                    <span>•</span>
-                    <span className="flex items-center gap-1 text-green-600">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Completed
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Mark complete button */}
-            {currentLesson.type !== "quiz" && !isComplete && (
-              <div className="mb-6">
-                <Button onClick={handleMarkComplete} size="lg" className="w-full sm:w-auto">
-                  <CheckCircle2 className="h-5 w-5 mr-2" />
-                  Mark as Complete
-                </Button>
-              </div>
-            )}
-
-            <Tabs defaultValue="overview" className="mb-20 lg:mb-8">
-              <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
-                <TabsTrigger value="overview" className="flex-shrink-0">
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger value="resources" className="flex-shrink-0">
-                  Resources
-                </TabsTrigger>
-                <TabsTrigger value="qa" className="flex-shrink-0">
-                  Q&A
-                </TabsTrigger>
-                <TabsTrigger value="notes" className="flex-shrink-0">
-                  Notes
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="overview" className="mt-6">
-                <LessonOverview
-                  title={currentLesson.title}
-                  description={lessonContent.description || ""}
-                  duration={currentLesson.duration}
-                  objectives={lessonContent.objectives}
-                />
-              </TabsContent>
-              <TabsContent value="resources" className="mt-6">
-                <ResourcesList resources={lessonContent.resources || []} />
-              </TabsContent>
-              <TabsContent value="qa" className="mt-6">
-                <QADiscussion courseId={courseId} lessonId={lessonId} />
-              </TabsContent>
-              <TabsContent value="notes" className="mt-6">
-                <NotesPanel courseId={courseId} lessonId={lessonId} />
-              </TabsContent>
-            </Tabs>
-
-            {/* Desktop Navigation */}
-            <div className="hidden lg:block">
-              <LessonNavigation
-                courseId={courseId}
-                previousLessonId={previousLesson?.id}
-                nextLessonId={nextLesson?.id}
-              />
-            </div>
-          </div>
-        </main>
-      </div>
-
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-30">
-        <div className="flex items-center justify-between gap-4">
-          {previousLesson ? (
-            <Button variant="outline" size="sm" asChild className="flex-1 bg-transparent">
-              <Link href={`/courses/${courseId}/lesson/${previousLesson.id}`}>
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Link>
-            </Button>
-          ) : (
-            <div className="flex-1" />
-          )}
-
-          {nextLesson ? (
-            <Button size="sm" asChild className="flex-1">
-              <Link href={`/courses/${courseId}/lesson/${nextLesson.id}`}>
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Link>
-            </Button>
-          ) : (
-            <Button size="sm" asChild className="flex-1">
-              <Link href={`/courses/${courseId}`}>Finish</Link>
-            </Button>
-          )}
         </div>
       </div>
     </div>

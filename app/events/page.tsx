@@ -1,11 +1,11 @@
 import { PageContainer } from "@/components/page-container"
 import { Section } from "@/components/section"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
-import { Calendar, MapPin, Users, Clock } from "lucide-react"
+import { Calendar, Clock, MapPin } from "lucide-react"
 import { events } from "@/lib/data"
+import { EventsCarousel } from "@/components/events-carousel"
 
 export default function EventsPage() {
   const upcomingEvents = events.filter((event) => new Date(event.date) >= new Date())
@@ -63,59 +63,79 @@ export default function EventsPage() {
             <p className="text-muted-foreground text-lg">No upcoming events at the moment. Check back soon!</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-6">
-            {upcomingEvents.map((event) => (
-              <Link key={event.id} href={`/events/${event.id}`}>
-                <Card className="hover:shadow-lg transition-shadow h-full">
-                  <img
-                    src={event.image || "/placeholder.svg"}
-                    alt={event.title}
-                    className="w-full h-56 object-cover rounded-t-lg -mt-6"
-                  />
-                  <CardHeader>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge>{event.category}</Badge>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(event.date).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {upcomingEvents.map((event) => {
+              // Format date for badge (e.g., "16 NOV")
+              const formatDateBadge = (date: string | Date) => {
+                const d = new Date(date)
+                const day = d.getDate()
+                const month = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase()
+                return `${day} ${month}`
+              }
+
+              // Format date range (e.g., "Nov 16")
+              const formatDateRange = (date: string | Date) => {
+                const start = new Date(date)
+                const startMonth = start.toLocaleDateString("en-US", { month: "short" })
+                const startDay = start.getDate()
+                return `${startMonth} ${startDay}`
+              }
+
+              return (
+                <Link key={event.id} href={`/events/${event.id}`}>
+                  <Card className="group hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-200 dark:border-slate-800 h-full">
+                    {/* Image with Date Badge Overlay */}
+                    <div className="relative h-48 overflow-hidden">
+                      <img
+                        src={event.image || "/placeholder.svg"}
+                        alt={event.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      {/* Date Badge - Bottom Left */}
+                      <div className="absolute bottom-4 left-4">
+                        <div className="w-16 h-16 rounded-full bg-accent hover:bg-accent/90 text-white flex flex-col items-center justify-center text-xs font-bold shadow-lg">
+                          <span className="text-[10px] leading-tight text-center">
+                            {formatDateBadge(event.date)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <CardTitle className="text-2xl">{event.title}</CardTitle>
-                    <CardDescription className="text-base">{event.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        <span>{event.time}</span>
+
+                    <CardContent className="p-5">
+                      {/* Title */}
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 group-hover:text-primary transition-colors line-clamp-2">
+                        {event.title}
+                      </h3>
+
+                      {/* Event Details */}
+                      <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                        {/* Date Range */}
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 flex-shrink-0" />
+                          <span>{formatDateRange(event.date)}</span>
+                        </div>
+
+                        {/* Time */}
+                        {event.time && (
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 flex-shrink-0" />
+                            <span>{event.time}</span>
+                          </div>
+                        )}
+
+                        {/* Location */}
+                        {event.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 flex-shrink-0" />
+                            <span className="line-clamp-1">{event.location}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span>{event.location}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground pt-2">
-                        <Users className="h-4 w-4" />
-                        <span>
-                          {event.registered} / {event.capacity} registered
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all"
-                          style={{ width: `${(event.registered / event.capacity) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                    </CardContent>
+                  </Card>
+                </Link>
+              )
+            })}
           </div>
         )}
       </Section>
@@ -128,28 +148,7 @@ export default function EventsPage() {
             <p className="text-muted-foreground text-lg">Explore our previous events and highlights</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {pastEvents.map((event) => (
-              <Link key={event.id} href={`/events/${event.id}`}>
-                <Card className="hover:shadow-lg transition-shadow h-full opacity-75">
-                  <img
-                    src={event.image || "/placeholder.svg"}
-                    alt={event.title}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                  />
-                  <CardHeader>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary">{event.category}</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                    </div>
-                    <CardTitle className="text-xl">{event.title}</CardTitle>
-                  </CardHeader>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          <EventsCarousel events={pastEvents} />
         </Section>
       )}
 

@@ -2,7 +2,7 @@ import { PageContainer } from "@/components/page-container"
 import { Section } from "@/components/section"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building, Users, Award, Target, Globe, Lightbulb, Microscope, BookOpen } from "lucide-react"
+import { Building, Users, Award, Target, Globe, Lightbulb, Microscope, BookOpen, Calendar, MapPin, Phone, Mail } from "lucide-react"
 import { AnimatedSection } from "@/components/animated-section"
 
 export default function AboutOverviewPage() {
@@ -44,14 +44,40 @@ export default function AboutOverviewPage() {
             </h1>
             
             <p className="text-lg md:text-xl text-white/90 mb-8 leading-relaxed font-light max-w-3xl mx-auto">
-              Leading the way in petroleum research and innovation since our establishment. We are committed to advancing scientific knowledge and technological solutions for Egypt's energy sector.
+              A leading research institution dedicated to advancing petroleum science, technology, and innovation in Egypt and the Middle East region.
             </p>
           </div>
         </div>
       </Section>
 
-      {/* Mission & Vision */}
+      {/* Introduction Section */}
       <Section>
+        <AnimatedSection animation="fade-up">
+          <div className="max-w-4xl mx-auto">
+            <Card className="border border-white/20 backdrop-blur-sm bg-gradient-to-br from-slate-50/50 to-white/50 dark:from-slate-900/50 dark:to-slate-800/50 shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-3xl font-serif text-center bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-slate-100 dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
+                  Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  The Egyptian Petroleum Research Institute (EPRI) is a premier research institution established to serve as a center of excellence in petroleum research, development, and innovation. Our institute plays a crucial role in advancing scientific knowledge and technological solutions for Egypt's petroleum industry.
+                </p>
+                <p className="text-muted-foreground leading-relaxed">
+                  EPRI is committed to conducting cutting-edge research in various fields of petroleum science and engineering, including exploration, production, refining, and environmental sustainability. We work closely with industry partners, government agencies, and academic institutions to address the challenges facing the petroleum sector and contribute to Egypt's energy security and economic development.
+                </p>
+                <p className="text-muted-foreground leading-relaxed">
+                  Through our comprehensive research programs, state-of-the-art laboratories, and highly qualified research teams, we strive to develop innovative solutions that enhance the efficiency, safety, and sustainability of petroleum operations while maintaining the highest standards of scientific excellence.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </AnimatedSection>
+      </Section>
+
+      {/* Mission & Vision */}
+      <Section className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-950">
         <div className="grid lg:grid-cols-2 gap-12">
           <AnimatedSection animation="fade-up" delay={0.1}>
             <Card className="border border-white/20 backdrop-blur-sm bg-gradient-to-br from-blue-500/10 via-blue-400/5 to-blue-300/10 hover:from-blue-500/20 hover:to-blue-300/20 shadow-xl hover:shadow-2xl transition-all duration-300 group overflow-hidden relative h-full">
@@ -90,6 +116,80 @@ export default function AboutOverviewPage() {
               </CardContent>
             </Card>
           </AnimatedSection>
+        </div>
+      </Section>
+
+      {/* Objectives Section */}
+      <Section>
+        <AnimatedSection animation="fade-up">
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-4xl font-bold mb-4 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-slate-100 dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
+              Our Objectives
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Key goals that guide our research and development activities
+            </p>
+          </div>
+        </AnimatedSection>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[
+            {
+              title: "Research Excellence",
+              description: "Conduct high-quality research in petroleum science and engineering to address industry challenges and contribute to scientific knowledge",
+              icon: Microscope,
+              color: "from-blue-500 to-blue-600"
+            },
+            {
+              title: "Technology Development",
+              description: "Develop innovative technologies and solutions to improve petroleum exploration, production, and processing efficiency",
+              icon: Lightbulb,
+              color: "from-green-500 to-green-600"
+            },
+            {
+              title: "Industry Collaboration",
+              description: "Foster strong partnerships with petroleum companies and industry stakeholders to ensure research relevance and impact",
+              icon: Building,
+              color: "from-purple-500 to-purple-600"
+            },
+            {
+              title: "Education & Training",
+              description: "Provide advanced education and professional training programs to develop skilled professionals for the petroleum industry",
+              icon: BookOpen,
+              color: "from-orange-500 to-orange-600"
+            },
+            {
+              title: "Environmental Sustainability",
+              description: "Promote sustainable practices and develop solutions for environmental protection in petroleum operations",
+              icon: Globe,
+              color: "from-cyan-500 to-cyan-600"
+            },
+            {
+              title: "Knowledge Transfer",
+              description: "Disseminate research findings and transfer knowledge to industry, academia, and the broader scientific community",
+              icon: Users,
+              color: "from-pink-500 to-pink-600"
+            }
+          ].map((objective, index) => {
+            const Icon = objective.icon
+            return (
+              <AnimatedSection key={objective.title} animation="fade-up" delay={index * 0.1}>
+                <Card className="h-full hover:shadow-lg transition-all duration-300 group border border-white/20">
+                  <CardHeader>
+                    <div className={`w-12 h-12 bg-gradient-to-r ${objective.color} rounded-xl flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-all duration-300`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <CardTitle className="text-xl font-serif">{objective.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {objective.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+            )
+          })}
         </div>
       </Section>
 
@@ -241,6 +341,70 @@ export default function AboutOverviewPage() {
               </Card>
             </AnimatedSection>
           ))}
+        </div>
+      </Section>
+
+      {/* Contact Information */}
+      <Section className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-950">
+        <AnimatedSection animation="fade-up">
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-4xl font-bold mb-4 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-slate-100 dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
+              Contact Information
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Get in touch with us for inquiries, collaborations, or more information
+            </p>
+          </div>
+        </AnimatedSection>
+
+        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <AnimatedSection animation="fade-up" delay={0.1}>
+            <Card className="text-center h-full hover:shadow-lg transition-all duration-300 group">
+              <CardHeader>
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300">
+                  <MapPin className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-lg font-serif mb-2">Address</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Nasr City, Cairo, Egypt
+                </p>
+              </CardContent>
+            </Card>
+          </AnimatedSection>
+
+          <AnimatedSection animation="fade-up" delay={0.2}>
+            <Card className="text-center h-full hover:shadow-lg transition-all duration-300 group">
+              <CardHeader>
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300">
+                  <Phone className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-lg font-serif mb-2">Phone</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  +(202) 22747847
+                </p>
+              </CardContent>
+            </Card>
+          </AnimatedSection>
+
+          <AnimatedSection animation="fade-up" delay={0.3}>
+            <Card className="text-center h-full hover:shadow-lg transition-all duration-300 group">
+              <CardHeader>
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300">
+                  <Mail className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-lg font-serif mb-2">Email</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  info@epri.edu.eg
+                </p>
+              </CardContent>
+            </Card>
+          </AnimatedSection>
         </div>
       </Section>
 

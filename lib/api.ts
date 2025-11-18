@@ -1,6 +1,6 @@
 // API client for communicating with the backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000/api';
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
 
 class ApiClient {
   private baseURL: string;
@@ -174,6 +174,20 @@ class ApiClient {
   async getDepartments(params?: { sectionId?: string }): Promise<{ departments: Array<{ id: string; name: string; description?: string; image?: string; icon?: string; section_id?: string }> }> {
     const query = params?.sectionId ? `?sectionId=${encodeURIComponent(params.sectionId)}` : '';
     return this.request(`/departments${query}`);
+  }
+
+  async getServiceCenters(params?: { featured?: boolean }): Promise<{ centers: any[]; total: number }> {
+    const queryParams = new URLSearchParams();
+    if (params?.featured !== undefined) {
+      queryParams.append('featured', String(params.featured));
+    }
+    const query = queryParams.toString();
+    return this.request(query ? `/service-centers?${query}` : '/service-centers');
+  }
+
+  async getServiceCenter(slug: string, options?: { preview?: boolean }): Promise<{ center: any }> {
+    const query = options?.preview ? `?preview=${options.preview}` : '';
+    return this.request(`/service-centers/${slug}${query}`);
   }
 
   async getDepartment(id: string): Promise<{ department: any }> {
@@ -632,6 +646,42 @@ class ApiClient {
   // Admin Services API
   async getAdminServices(): Promise<{ services: any[], total: number }> {
     return this.request<{ services: any[], total: number }>('/admin/services');
+  }
+
+  async getAdminServiceCenters(params?: { includeHidden?: boolean; featured?: boolean }): Promise<{ centers: any[]; total: number }> {
+    const queryParams = new URLSearchParams();
+    if (params?.includeHidden !== undefined) {
+      queryParams.append('includeHidden', String(params.includeHidden));
+    }
+    if (params?.featured !== undefined) {
+      queryParams.append('featured', String(params.featured));
+    }
+    const query = queryParams.toString();
+    return this.request<{ centers: any[]; total: number }>(query ? `/admin/service-centers?${query}` : '/admin/service-centers');
+  }
+
+  async getAdminServiceCenter(id: string): Promise<{ center: any }> {
+    return this.request<{ center: any }>(`/admin/service-centers/${id}`);
+  }
+
+  async createAdminServiceCenter(centerData: any): Promise<{ message: string; center: any }> {
+    return this.request<{ message: string; center: any }>('/admin/service-centers', {
+      method: 'POST',
+      body: JSON.stringify(centerData),
+    });
+  }
+
+  async updateAdminServiceCenter(id: string, centerData: any): Promise<{ message: string; center: any }> {
+    return this.request<{ message: string; center: any }>(`/admin/service-centers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(centerData),
+    });
+  }
+
+  async deleteAdminServiceCenter(id: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/admin/service-centers/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   async getAdminService(id: string): Promise<{ service: any }> {

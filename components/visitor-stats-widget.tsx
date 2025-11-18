@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Eye, Users, TrendingUp } from "lucide-react"
 import { useVisitTracker } from "@/hooks/use-visit-tracker"
+import { apiClient } from "@/lib/api"
 
 interface VisitorStats {
   totalVisits: number
@@ -21,18 +22,18 @@ export function VisitorStatsWidget() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch total stats
-        // const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/visitor-stats/stats`)
-        const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000'}/api/visitor-stats/stats`)
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
-          if (statsData.success) {
-            setStats(statsData.data)
-          } else {
-            console.warn('API returned unsuccessful response:', statsData)
-          }
+        const statsData = await apiClient.getVisitorStats()
+        if (statsData.success) {
+          setStats(statsData.data)
         } else {
-          console.warn('Failed to fetch stats, server responded with:', statsResponse.status)
+          console.warn('API returned unsuccessful response:', statsData)
+          // Set default stats on error
+          setStats({
+            totalVisits: 0,
+            uniqueSessions: 0,
+            since: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          })
         }
       } catch (error) {
         console.error('Failed to fetch visitor stats:', error)

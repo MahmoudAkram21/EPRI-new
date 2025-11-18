@@ -9,12 +9,13 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({ url, onEnded }: VideoPlayerProps) {
   return (
-    <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
+    <div className="w-full h-full bg-black">
       <ReactPlayer
         url={url}
         controls
         width="100%"
         height="100%"
+        playing={false}
         onEnded={onEnded}
         config={{
           file: {
@@ -22,6 +23,9 @@ export function VideoPlayer({ url, onEnded }: VideoPlayerProps) {
               controlsList: "nodownload",
             },
           },
+        }}
+        style={{
+          backgroundColor: "#000",
         }}
       />
     </div>

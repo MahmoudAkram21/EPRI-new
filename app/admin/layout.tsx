@@ -21,7 +21,8 @@ import {
   Wrench,
   UserCheck,
   FlaskConical,
-  BookOpen
+  BookOpen,
+  Building
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ const menuItems = [
   { icon: UserCheck, label: 'Staff', href: '/admin/staff' },
   { icon: FlaskConical, label: 'Laboratories', href: '/admin/laboratories' },
   { icon: Wrench, label: 'Services', href: '/admin/services' },
+  { icon: Building, label: 'Service Centers & Units', href: '/admin/service-centers' },
   { icon: FileText, label: 'Event Requests', href: '/admin/requests' },
   { icon: BarChart3, label: 'Analytics', href: '/admin/analytics' },
   { icon: Settings, label: 'Settings', href: '/admin/settings' },

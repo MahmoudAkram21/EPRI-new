@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { motion } from "framer-motion"
 import { projects, projectCategories } from "@/lib/data"
 import { PageContainer } from "@/components/page-container"
 import { Section } from "@/components/section"
@@ -37,47 +38,63 @@ export default function ProjectsPage() {
 
   return (
     <PageContainer>
-      {/* Hero Section with Background */}
-      <Section className="relative overflow-hidden">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed" 
-          style={{ 
-            backgroundImage: `url('/research-center-building.jpg')`,
-            transform: 'scale(1.05)',
-            filter: 'brightness(0.6) contrast(1.1) saturate(1.2)'
-          }}
-        ></div>
-        
-        {/* Gradient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-600/85 via-red-600/75 to-pink-600/85"></div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/40 via-transparent to-orange-500/40"></div>
-        
-        {/* Floating particles */}
-        <div className="absolute top-20 left-1/4 w-4 h-4 bg-yellow-400/60 rounded-full animate-bounce delay-300"></div>
-        <div className="absolute top-40 right-1/3 w-3 h-3 bg-orange-400/60 rounded-full animate-bounce delay-700"></div>
-        <div className="absolute bottom-32 left-1/3 w-5 h-5 bg-red-400/60 rounded-full animate-bounce delay-1000"></div>
-        <div className="absolute bottom-20 right-1/4 w-2 h-2 bg-pink-400/60 rounded-full animate-bounce delay-500"></div>
-        
-        {/* Glassmorphism overlay */}
-        <div className="absolute inset-0 backdrop-blur-sm bg-gradient-to-br from-white/10 via-transparent to-white/5"></div>
-        
-        <div className="relative z-10 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <AnimatedSection animation="fade-up">
-              <div className="flex justify-center mb-6">
-                <div className="p-4 bg-white/20 backdrop-blur-md rounded-full border border-white/30">
-                  <FolderOpen className="h-16 w-16 text-white" />
-                </div>
-              </div>
-              <h1 className="font-serif text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-orange-200 to-red-200 bg-clip-text text-transparent leading-tight">
-                Research Projects
-              </h1>
-              <p className="text-xl md:text-2xl text-white/90 leading-relaxed font-light">
-                Explore our ongoing and completed research projects advancing petroleum science and technology in Egypt.
-              </p>
-            </AnimatedSection>
-          </div>
+      {/* Hero Section */}
+      <Section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-20 text-white shadow-2xl dark:border-slate-700">
+        <div className="absolute inset-0 opacity-40">
+          <img
+            src="/research-center-building.jpg"
+            alt="Research projects background"
+            className="h-full w-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/95 to-slate-900/40" />
+        </div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.15),transparent_50%)]" />
+
+        <div className="relative z-10 mx-auto max-w-5xl text-center">
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em]"
+          >
+            Research Projects
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </motion.p>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.7, ease: "easeOut" }}
+            className="font-serif text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl"
+          >
+            Research Projects
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.65, ease: "easeOut" }}
+            className="mx-auto mt-6 max-w-3xl text-base text-slate-200/85 sm:text-lg"
+          >
+            Explore our ongoing and completed research projects advancing petroleum science and technology in Egypt.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
+            className="mt-10 flex flex-wrap items-center justify-center gap-4 text-sm text-white/80"
+          >
+            <Badge variant="outline" className="border-white/40 bg-white/10 text-white backdrop-blur">
+              {projects.length} Total Projects
+            </Badge>
+            <Badge variant="outline" className="border-white/40 bg-white/10 text-white backdrop-blur">
+              {projects.filter((p) => p.status === "Completed").length} Completed
+            </Badge>
+            <Badge variant="outline" className="border-white/40 bg-white/10 text-white backdrop-blur">
+              {projects.filter((p) => p.status === "In Progress").length} In Progress
+            </Badge>
+          </motion.div>
         </div>
       </Section>
 

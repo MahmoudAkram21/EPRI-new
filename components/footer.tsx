@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Facebook, Twitter, Linkedin, Instagram, Mail } from "lucide-react"
+import { Facebook, Twitter, Linkedin, Instagram, Mail, MapPin, Phone, MessageCircle, Youtube } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { VisitorStatsWidget } from "@/components/visitor-stats-widget"
@@ -16,36 +16,6 @@ export function Footer() {
               Egyptian Petroleum Research Institute - Leading educational and research institute dedicated to advancing
               knowledge in petroleum engineering and energy.
             </p>
-            <div className="flex gap-3">
-              <Link
-                href="#"
-                className="text-muted-foreground hover:text-primary transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="h-5 w-5" />
-              </Link>
-              <Link
-                href="#"
-                className="text-muted-foreground hover:text-primary transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter className="h-5 w-5" />
-              </Link>
-              <Link
-                href="#"
-                className="text-muted-foreground hover:text-primary transition-colors"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="h-5 w-5" />
-              </Link>
-              <Link
-                href="#"
-                className="text-muted-foreground hover:text-primary transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="h-5 w-5" />
-              </Link>
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -75,29 +45,84 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Resources */}
+
+          {/* Related Links */}
           <div>
-            <h4 className="font-semibold mb-4">Resources</h4>
+            <h4 className="font-semibold mb-4">Related Links</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/shop" className="text-muted-foreground hover:text-primary transition-colors">
-                  Shop
+                <Link 
+                  href="https://mohesr.gov.eg/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Ministry of Higher Education & Scientific Research
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors">
-                  Contact
+                <Link 
+                  href="http://www.crci.sci.eg/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Council of Research Centers and Institutes
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  FAQ
+                <Link 
+                  href="https://www.petroleum.gov.eg/en/Pages/HomePage.aspx" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Ministry of Petroleum and Mineral Resources
                 </Link>
               </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  Support
-                </Link>
+            </ul>
+          </div>
+
+          {/* Address Info */}
+          <div>
+            <h4 className="font-semibold mb-4">Address Info</h4>
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <span className="text-muted-foreground">
+                  1 Ahmed El-Zomor Street, El Zohour Region - Nasr city - Cairo
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Phone className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div className="text-muted-foreground">
+                  <a href="tel:+20222747847" className="hover:text-primary transition-colors block">
+                    +(202)22747847
+                  </a>
+                  <a href="tel:+20222747433" className="hover:text-primary transition-colors block">
+                    +(202)22747433
+                  </a>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <MessageCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <a 
+                  href="https://wa.me/201201123333" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  01201123333
+                </a>
+              </li>
+              <li className="flex items-start gap-3">
+                <Mail className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <a 
+                  href="mailto:research@epri.sci.eg" 
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  research@epri.sci.eg
+                </a>
               </li>
             </ul>
           </div>
@@ -120,8 +145,76 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Egyptian Petroleum Research Institute (EPRI). All rights reserved.</p>
+        <div className="pt-8 border-t">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            {/* Social Media Icons - Bottom Left */}
+            <div className="flex gap-3">
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Facebook"
+              >
+                <Facebook className="h-5 w-5" />
+              </Link>
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Instagram"
+              >
+                <Instagram className="h-5 w-5" />
+              </Link>
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="X formerly Twitter"
+              >
+                <Twitter className="h-5 w-5" />
+              </Link>
+              <Link
+                href="https://wa.me/201201123333"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="WhatsApp"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </Link>
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="h-5 w-5" />
+              </Link>
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="YouTube"
+              >
+                <Youtube className="h-5 w-5" />
+              </Link>
+              <Link
+                href="mailto:research@epri.sci.eg"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Official email"
+              >
+                <Mail className="h-5 w-5" />
+              </Link>
+            </div>
+
+            {/* Copyright - Bottom Right */}
+            <p className="text-sm text-muted-foreground text-center md:text-right">
+              All Rights Reserved © Designed by{" "}
+              <a 
+                href="https://www.qeematech.net/" 
+                target="_blank" 
+                rel="dofollow"
+                className="hover:text-primary transition-colors"
+              >
+                Qeematech
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </footer>
