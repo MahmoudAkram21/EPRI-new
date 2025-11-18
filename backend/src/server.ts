@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -11,6 +11,142 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3002;
 const prisma = new PrismaClient();
+
+const slugify = (value: string): string =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+const parseJsonValue = <T>(value: Prisma.JsonValue | null | string | undefined, fallback: T): T => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === 'string') {
+    if (value.trim() === '') {
+      return fallback;
+    }
+
+    try {
+      return JSON.parse(value) as T;
+    } catch (error) {
+      console.warn('Failed to parse JSON string field. Returning fallback.', { value, error });
+      return fallback;
+    }
+  }
+
+  return value as T;
+};
+
+const normalizeCenterEquipments = (equipments: any): any[] => {
+  if (!Array.isArray(equipments)) return [];
+
+  return equipments.map((equipment: any) => ({
+    id: equipment.id,
+    name: equipment.name,
+    details: equipment.description ?? null,
+    description: equipment.description ?? null,
+    image: equipment.image ?? null,
+    specifications: parseJsonValue(equipment.specifications, null as any)
+  }));
+};
+
+const parseEquipmentItems = (input: any): Array<{
+  name: string;
+  description: string | null;
+  image: string | null;
+  specifications: Prisma.JsonValue | null;
+}> => {
+  const items = parseJsonValue(input, [] as any[]);
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item: any) => {
+      if (!item || typeof item !== 'object') return null;
+      const name = item.name ?? item.title ?? '';
+      if (!name) return null;
+
+      return {
+        name,
+        description: item.details ?? item.description ?? null,
+        image: item.image ?? null,
+        specifications:
+          item.specifications !== undefined
+            ? parseJsonValue(item.specifications, null as any)
+            : null
+      };
+    })
+    .filter((item): item is {
+      name: string;
+      description: string | null;
+      image: string | null;
+      specifications: Prisma.JsonValue | null;
+    } => item !== null);
+};
+
+const syncServiceCenterEquipments = async (
+  centerId: string,
+  equipments: Array<{
+    name: string;
+    description: string | null;
+    image: string | null;
+    specifications: Prisma.JsonValue | null;
+  }>
+) => {
+  await prisma.serviceEquipment.deleteMany({
+    where: { service_center_id: centerId } as any
+  });
+
+  if (equipments.length === 0) {
+    return;
+  }
+
+  await prisma.serviceEquipment.createMany({
+    data: equipments.map((equipment) => ({
+      service_center_id: centerId,
+      name: equipment.name,
+      description: equipment.description,
+      image: equipment.image,
+      specifications: equipment.specifications
+    })) as any
+  });
+};
+
+const transformServiceCenter = (center: any) => {
+  const { equipments, ...rest } = center;
+
+  return {
+    ...rest,
+    equipments: normalizeCenterEquipments(equipments),
+    products: parseJsonValue(center.products, [] as any[]),
+    work_volume: parseJsonValue(center.work_volume, null as any),
+    company_activity: parseJsonValue(center.company_activity, null as any),
+    services: parseJsonValue(center.services, [] as any[]),
+    metrics: parseJsonValue(center.metrics, null as any)
+  };
+};
+
+const parseBoolean = (value: any, fallback: boolean): boolean => {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '') return fallback;
+    return ['true', '1', 'yes', 'y', 'on'].includes(normalized);
+  }
+  return fallback;
+};
+
+const parseNumber = (value: any, fallback: number): number => {
+  if (value === undefined || value === null || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 // Middleware
 const allowedOrigins = [
@@ -356,6 +492,65 @@ app.get('/api/staff', async (req, res) => {
     });
   } catch (error) {
     console.error('Staff fetch error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Service Centers endpoints
+app.get('/api/service-centers', async (req, res) => {
+  try {
+    const { featured } = req.query as { featured?: string };
+    const centers = await (prisma as any).serviceCenter.findMany({
+      where: {
+        is_published: true,
+        ...(featured !== undefined ? { is_featured: featured === 'true' } : {})
+      },
+      include: {
+        equipments: true
+      },
+      orderBy: [
+        { order_index: 'asc' },
+        { created_at: 'desc' }
+      ]
+    });
+
+    return res.json({
+      centers: centers.map(transformServiceCenter),
+      total: centers.length
+    });
+  } catch (error: any) {
+    console.error('Service centers fetch error:', error);
+    console.error('Error stack:', error?.stack);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/service-centers/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { preview } = req.query as { preview?: string };
+
+    if (!slug) {
+      return res.status(400).json({ message: 'Service center slug is required' });
+    }
+
+    const center = await (prisma as any).serviceCenter.findUnique({
+      where: { slug },
+      include: {
+        equipments: true
+      }
+    });
+
+    if (!center || (!center.is_published && preview !== 'true')) {
+      return res.status(404).json({ message: 'Service center not found' });
+    }
+
+    return res.json({
+      center: transformServiceCenter(center)
+    });
+  } catch (error: any) {
+    console.error('Service center fetch error:', error);
+    console.error('Error stack:', error?.stack);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -1446,6 +1641,354 @@ app.delete('/api/admin/services/:id', authenticateToken, requireAdmin, async (re
     });
   } catch (error: any) {
     console.error('Admin service delete error:', error);
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+    });
+  }
+});
+
+// Admin Service Centers routes
+app.get('/api/admin/service-centers', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { includeHidden, featured } = req.query as { includeHidden?: string; featured?: string };
+
+    const centers = await (prisma as any).serviceCenter.findMany({
+      where: {
+        ...(includeHidden === 'true' ? {} : { is_published: true }),
+        ...(featured !== undefined ? { is_featured: featured === 'true' } : {})
+      },
+      include: {
+        equipments: true
+      },
+      orderBy: [
+        { order_index: 'asc' },
+        { created_at: 'desc' }
+      ]
+    });
+
+    return res.json({
+      centers: centers.map(transformServiceCenter),
+      total: centers.length
+    });
+  } catch (error: any) {
+    console.error('Admin service centers fetch error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/service-centers/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: 'Service center ID or slug is required' });
+    }
+
+    let center = await (prisma as any).serviceCenter.findUnique({
+      where: { id },
+      include: {
+        equipments: true
+      }
+    });
+
+    if (!center) {
+      center = await (prisma as any).serviceCenter.findUnique({
+        where: { slug: id },
+        include: {
+          equipments: true
+        }
+      });
+    }
+
+    if (!center) {
+      return res.status(404).json({ message: 'Service center not found' });
+    }
+
+    return res.json({ center: transformServiceCenter(center) });
+  } catch (error: any) {
+    console.error('Admin service center fetch error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/service-centers', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const {
+      name,
+      slug: slugInput,
+      headline,
+      description,
+      image,
+      banner_image,
+      bannerImage,
+      location,
+      contact_phone,
+      contactPhone,
+      contact_email,
+      contactEmail,
+      lab_methodology,
+      labMethodology,
+      future_prospective,
+      futureProspective,
+      is_featured,
+      isFeatured,
+      is_published,
+      isPublished,
+      order_index,
+      orderIndex
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: 'Service center name is required' });
+    }
+
+    const finalSlug = slugify(slugInput || name);
+
+    if (!finalSlug) {
+      return res.status(400).json({ message: 'Unable to generate a valid slug for the service center' });
+    }
+
+    const existingCenter = await (prisma as any).serviceCenter.findUnique({
+      where: { slug: finalSlug }
+    });
+
+    if (existingCenter) {
+      return res.status(400).json({ message: 'A service center with this slug already exists' });
+    }
+
+    const equipmentsInput = req.body.equipments ?? req.body.equipmentList ?? req.body.equipment_list;
+    const productsInput = req.body.products ?? req.body.productList ?? req.body.product_list;
+    const workVolumeInput = req.body.work_volume ?? req.body.workVolume;
+    const companyActivityInput = req.body.company_activity ?? req.body.companyActivity;
+    const servicesInput = req.body.services ?? req.body.serviceTabs ?? req.body.service_tabs;
+    const metricsInput = req.body.metrics ?? req.body.analytics ?? req.body.kpis;
+
+    const equipmentItems = parseEquipmentItems(equipmentsInput);
+
+    const center = await (prisma as any).serviceCenter.create({
+      data: {
+        name,
+        slug: finalSlug,
+        headline: headline ?? null,
+        description: description ?? null,
+        image: image ?? null,
+        banner_image: (banner_image ?? bannerImage) || null,
+        location: location ?? null,
+        contact_phone: (contact_phone ?? contactPhone) || null,
+        contact_email: (contact_email ?? contactEmail) || null,
+        lab_methodology: (lab_methodology ?? labMethodology) || null,
+        future_prospective: (future_prospective ?? futureProspective) || null,
+        products: parseJsonValue(productsInput as Prisma.JsonValue | string | undefined, [] as any[]),
+        work_volume: parseJsonValue(workVolumeInput as Prisma.JsonValue | string | undefined, null as any),
+        company_activity: parseJsonValue(companyActivityInput as Prisma.JsonValue | string | undefined, null as any),
+        services: parseJsonValue(servicesInput as Prisma.JsonValue | string | undefined, [] as any[]),
+        metrics: parseJsonValue(metricsInput as Prisma.JsonValue | string | undefined, null as any),
+        is_featured: parseBoolean(is_featured ?? isFeatured, false),
+        is_published: parseBoolean(is_published ?? isPublished, true),
+        order_index: parseNumber(order_index ?? orderIndex, 0)
+      }
+    });
+
+    await syncServiceCenterEquipments(center.id, equipmentItems);
+
+    const centerWithRelations = await (prisma as any).serviceCenter.findUnique({
+      where: { id: center.id },
+      include: {
+        equipments: true
+      }
+    });
+
+    return res.json({
+      message: 'Service center created successfully',
+      center: centerWithRelations ? transformServiceCenter(centerWithRelations) : transformServiceCenter(center)
+    });
+  } catch (error: any) {
+    console.error('Admin service center create error:', error);
+    if (error?.code === 'P2002') {
+      return res.status(400).json({ message: 'A service center with this slug already exists' });
+    }
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+    });
+  }
+});
+
+app.put('/api/admin/service-centers/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: 'Service center ID is required' });
+    }
+
+    const existingCenter = await (prisma as any).serviceCenter.findUnique({
+      where: { id }
+    });
+
+    if (!existingCenter) {
+      return res.status(404).json({ message: 'Service center not found' });
+    }
+
+    const {
+      name,
+      slug: slugInput,
+      headline,
+      description,
+      image,
+      banner_image,
+      bannerImage,
+      location,
+      contact_phone,
+      contactPhone,
+      contact_email,
+      contactEmail,
+      lab_methodology,
+      labMethodology,
+      future_prospective,
+      futureProspective,
+      is_featured,
+      isFeatured,
+      is_published,
+      isPublished,
+      order_index,
+      orderIndex
+    } = req.body;
+
+    const updateData: Record<string, any> = {};
+
+    if (name !== undefined) updateData.name = name;
+
+    if (slugInput !== undefined) {
+      const finalSlug = slugify(slugInput);
+      if (!finalSlug) {
+        return res.status(400).json({ message: 'Invalid slug provided' });
+      }
+
+      if (finalSlug !== existingCenter.slug) {
+        const slugConflict = await (prisma as any).serviceCenter.findUnique({
+          where: { slug: finalSlug }
+        });
+
+        if (slugConflict && slugConflict.id !== id) {
+          return res.status(400).json({ message: 'Another service center with this slug already exists' });
+        }
+      }
+
+      updateData.slug = finalSlug;
+    }
+
+    if (headline !== undefined) updateData.headline = headline ?? null;
+    if (description !== undefined) updateData.description = description ?? null;
+    if (image !== undefined) updateData.image = image ?? null;
+    const bannerValue = banner_image ?? bannerImage;
+    if (bannerValue !== undefined) updateData.banner_image = bannerValue || null;
+    if (location !== undefined) updateData.location = location ?? null;
+    const phoneValue = contact_phone ?? contactPhone;
+    if (phoneValue !== undefined) updateData.contact_phone = phoneValue || null;
+    const emailValue = contact_email ?? contactEmail;
+    if (emailValue !== undefined) updateData.contact_email = emailValue || null;
+    const labMethodValue = lab_methodology ?? labMethodology;
+    if (labMethodValue !== undefined) updateData.lab_methodology = labMethodValue || null;
+    const futureValue = future_prospective ?? futureProspective;
+    if (futureValue !== undefined) updateData.future_prospective = futureValue || null;
+
+    const equipmentsInput = req.body.equipments ?? req.body.equipmentList ?? req.body.equipment_list;
+    const equipmentItems = equipmentsInput !== undefined ? parseEquipmentItems(equipmentsInput) : null;
+
+    const productsInput = req.body.products ?? req.body.productList ?? req.body.product_list;
+    if (productsInput !== undefined) {
+      updateData.products = parseJsonValue(productsInput as Prisma.JsonValue | string | undefined, [] as any[]);
+    }
+
+    const workVolumeInput = req.body.work_volume ?? req.body.workVolume;
+    if (workVolumeInput !== undefined) {
+      updateData.work_volume = parseJsonValue(workVolumeInput as Prisma.JsonValue | string | undefined, null as any);
+    }
+
+    const companyActivityInput = req.body.company_activity ?? req.body.companyActivity;
+    if (companyActivityInput !== undefined) {
+      updateData.company_activity = parseJsonValue(companyActivityInput as Prisma.JsonValue | string | undefined, null as any);
+    }
+
+    const servicesInput = req.body.services ?? req.body.serviceTabs ?? req.body.service_tabs;
+    if (servicesInput !== undefined) {
+      updateData.services = parseJsonValue(servicesInput as Prisma.JsonValue | string | undefined, [] as any[]);
+    }
+
+    const metricsInput = req.body.metrics ?? req.body.analytics ?? req.body.kpis;
+    if (metricsInput !== undefined) {
+      updateData.metrics = parseJsonValue(metricsInput as Prisma.JsonValue | string | undefined, null as any);
+    }
+
+    if (is_featured !== undefined || isFeatured !== undefined) {
+      updateData.is_featured = parseBoolean(is_featured ?? isFeatured, existingCenter.is_featured);
+    }
+
+    if (is_published !== undefined || isPublished !== undefined) {
+      updateData.is_published = parseBoolean(is_published ?? isPublished, existingCenter.is_published);
+    }
+
+    if (order_index !== undefined || orderIndex !== undefined) {
+      updateData.order_index = parseNumber(order_index ?? orderIndex, existingCenter.order_index);
+    }
+
+    const center = await (prisma as any).serviceCenter.update({
+      where: { id },
+      data: updateData
+    });
+
+    if (equipmentItems !== null) {
+      await syncServiceCenterEquipments(center.id, equipmentItems);
+    }
+
+    const centerWithRelations = await (prisma as any).serviceCenter.findUnique({
+      where: { id },
+      include: {
+        equipments: true
+      }
+    });
+
+    return res.json({
+      message: 'Service center updated successfully',
+      center: centerWithRelations ? transformServiceCenter(centerWithRelations) : transformServiceCenter(center)
+    });
+  } catch (error: any) {
+    console.error('Admin service center update error:', error);
+    if (error?.code === 'P2002') {
+      return res.status(400).json({ message: 'A service center with this slug already exists' });
+    }
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+    });
+  }
+});
+
+app.delete('/api/admin/service-centers/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: 'Service center ID is required' });
+    }
+
+    const existingCenter = await (prisma as any).serviceCenter.findUnique({
+      where: { id }
+    });
+
+    if (!existingCenter) {
+      return res.status(404).json({ message: 'Service center not found' });
+    }
+
+    await (prisma as any).serviceCenter.delete({
+      where: { id }
+    });
+
+    return res.json({ message: 'Service center deleted successfully' });
+  } catch (error: any) {
+    console.error('Admin service center delete error:', error);
     return res.status(500).json({ 
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error?.message : undefined

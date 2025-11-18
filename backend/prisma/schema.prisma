@@ -603,7 +603,8 @@ model ServiceCenterHead {
 
 model ServiceEquipment {
   id String @id @default(uuid())
-  service_id String
+  serviceId String? @map("service_id")
+  serviceCenterId String? @map("service_center_id")
   name String
   description String? @db.Text
   image String?
@@ -612,7 +613,37 @@ model ServiceEquipment {
   updated_at DateTime @updatedAt
   
   // Relations
-  service Service @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceCenter ServiceCenter? @relation(fields: [serviceCenterId], references: [id], onDelete: Cascade)
   
   @@map("service_equipment")
+}
+
+model ServiceCenter {
+  id String @id @default(uuid())
+  name String
+  slug String @unique
+  type String @default("center") // "center" or "unit"
+  headline String?
+  description String? @db.Text
+  image String?
+  banner_image String?
+  location String?
+  contact_phone String?
+  contact_email String?
+  products Json? // Array of products (hidden when empty on frontend)
+  lab_methodology String? @db.Text
+  work_volume Json? // Chart data for work volume e.g. { totalIncomeRate, dataPoints: [] }
+  company_activity Json? // Chart data for company activity
+  future_prospective String? @db.Text
+  services Json? // Array of services/offers summary
+  metrics Json? // Additional KPIs or stats
+  is_featured Boolean @default(false)
+  is_published Boolean @default(true)
+  order_index Int @default(0)
+  equipments ServiceEquipment[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("service_center")
 }

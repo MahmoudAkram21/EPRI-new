@@ -450,7 +450,8 @@ CREATE TABLE `service_center_head` (
 -- CreateTable
 CREATE TABLE `service_equipment` (
     `id` VARCHAR(191) NOT NULL,
-    `service_id` VARCHAR(191) NOT NULL,
+    `service_id` VARCHAR(191) NULL,
+    `service_center_id` VARCHAR(191) NULL,
     `name` VARCHAR(191) NOT NULL,
     `description` TEXT NULL,
     `image` VARCHAR(191) NULL,
@@ -458,7 +459,9 @@ CREATE TABLE `service_equipment` (
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    INDEX `service_equipment_service_id_idx`(`service_id`),
+    INDEX `service_equipment_service_center_id_idx`(`service_center_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
@@ -529,6 +532,9 @@ ALTER TABLE `service_tab` ADD CONSTRAINT `service_tab_service_id_fkey` FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE `service_equipment` ADD CONSTRAINT `service_equipment_service_id_fkey` FOREIGN KEY (`service_id`) REFERENCES `service`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `service_equipment` ADD CONSTRAINT `service_equipment_service_center_id_fkey` FOREIGN KEY (`service_center_id`) REFERENCES `service_center`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `_EventToSpeaker` ADD CONSTRAINT `_EventToSpeaker_A_fkey` FOREIGN KEY (`A`) REFERENCES `event`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

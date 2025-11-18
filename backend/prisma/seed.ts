@@ -1837,7 +1837,7 @@ async function main() {
           description: equipmentData.description,
           image: equipmentData.image,
           specifications: equipmentData.specifications,
-          service_id: service.id
+          serviceId: service.id
         },
         create: {
           id: equipmentData.id,
@@ -1845,7 +1845,7 @@ async function main() {
           description: equipmentData.description,
           image: equipmentData.image,
           specifications: equipmentData.specifications,
-          service_id: service.id
+          serviceId: service.id
         }
       });
     }
@@ -1935,6 +1935,640 @@ async function main() {
   }
 
   console.log('✅ Staff members created');
+
+  const serviceCentersData = [
+    // Centers
+    {
+      id: 'center-asphalt-polymers',
+      slug: 'asphalt-polymers',
+      name: 'Asphalt & polymers',
+      type: 'center',
+      headline: 'Advanced asphalt and polymer research and development center',
+      description: 'The Asphalt & Polymers Center specializes in the development, testing, and optimization of asphalt materials and polymer-based solutions for the petroleum and construction industries. We provide comprehensive research services, quality testing, and innovative product development.',
+      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1569228037739-37f4c9e2ab89?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747847',
+      contact_email: 'asphalt.polymers@epri.edu.eg',
+      equipments: [
+        {
+          name: 'Dynamic Shear Rheometer (DSR)',
+          details: 'Advanced rheological testing equipment for asphalt binder characterization and performance grading.'
+        },
+        {
+          name: 'Bending Beam Rheometer (BBR)',
+          details: 'Low-temperature performance testing for asphalt binders and mixtures.'
+        },
+        {
+          name: 'Polymer Testing Laboratory',
+          details: 'Comprehensive polymer characterization including molecular weight, thermal properties, and mechanical testing.'
+        }
+      ],
+      products: [
+        {
+          name: 'Modified Asphalt Binders',
+          description: 'High-performance polymer-modified asphalt binders for various applications.'
+        },
+        {
+          name: 'Polymer Additives',
+          description: 'Specialized polymer additives for enhanced material properties.'
+        }
+      ],
+      lab_methodology: 'Our laboratory follows ASTM and AASHTO standards for asphalt and polymer testing. We employ advanced analytical techniques including rheology, thermal analysis, and mechanical testing to ensure quality and performance.',
+      work_volume: {
+        totalIncomeRate: 12.5,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 8.2 },
+          { label: '2022', value: 10.1 },
+          { label: '2023', value: 11.5 },
+          { label: '2024', value: 12.5 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 58,
+        activityMix: [
+          { label: 'Research & Development', value: 40 },
+          { label: 'Quality Testing', value: 30 },
+          { label: 'Product Development', value: 20 },
+          { label: 'Consulting Services', value: 10 }
+        ]
+      },
+      future_prospective: 'Expanding into sustainable asphalt technologies, developing bio-based polymers, and establishing partnerships with construction and infrastructure companies.',
+      services: [
+        {
+          name: 'Asphalt Testing & Analysis',
+          summary: 'Comprehensive testing services for asphalt binders, mixtures, and performance evaluation.'
+        },
+        {
+          name: 'Polymer Research & Development',
+          summary: 'Advanced R&D services for polymer-based materials and applications.'
+        },
+        {
+          name: 'Material Characterization',
+          summary: 'Detailed material analysis and characterization services.'
+        }
+      ],
+      metrics: {
+        accreditation: 'ISO/IEC 17025',
+        activeProjects: 58,
+        researchPublications: 24
+      },
+      is_featured: true,
+      is_published: true,
+      order_index: 1
+    },
+    {
+      id: 'center-chemical-services',
+      slug: 'chemical-services-development',
+      name: 'Chemical Services and Development',
+      type: 'center',
+      headline: 'Comprehensive chemical services and product development',
+      description: 'Providing advanced chemical analysis, development, and consulting services for the petroleum industry.',
+      image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747848',
+      contact_email: 'chemical.services@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 6.8,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 4.5 },
+          { label: '2022', value: 5.6 },
+          { label: '2023', value: 6.2 },
+          { label: '2024', value: 6.8 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 35,
+        activityMix: [
+          { label: 'Chemical Analysis', value: 50 },
+          { label: 'Product Development', value: 30 },
+          { label: 'Consulting', value: 20 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 2
+    },
+    {
+      id: 'center-core-analysis',
+      slug: 'core-analysis',
+      name: 'Core Analysis',
+      type: 'center',
+      headline: 'Specialized core analysis and reservoir characterization services',
+      description: 'Advanced core analysis laboratory providing comprehensive reservoir rock characterization and fluid analysis.',
+      image: 'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1505731132164-cca90383e1af?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747849',
+      contact_email: 'core.analysis@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 9.2,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 6.1 },
+          { label: '2022', value: 7.5 },
+          { label: '2023', value: 8.4 },
+          { label: '2024', value: 9.2 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 45,
+        activityMix: [
+          { label: 'Core Analysis', value: 60 },
+          { label: 'Reservoir Studies', value: 25 },
+          { label: 'Consulting', value: 15 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 3
+    },
+    {
+      id: 'center-pvt-services',
+      slug: 'pvt-services',
+      name: 'PVT Services',
+      type: 'center',
+      headline: 'Pressure-Volume-Temperature analysis and fluid characterization',
+      description: 'Comprehensive PVT analysis services for reservoir fluid characterization and production optimization.',
+      image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1509395176047-4a66953fd231?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747850',
+      contact_email: 'pvt.services@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 7.5,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 5.2 },
+          { label: '2022', value: 6.3 },
+          { label: '2023', value: 7.0 },
+          { label: '2024', value: 7.5 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 38,
+        activityMix: [
+          { label: 'PVT Analysis', value: 55 },
+          { label: 'Fluid Characterization', value: 30 },
+          { label: 'Consulting', value: 15 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 4
+    },
+    {
+      id: 'center-surfaces',
+      slug: 'surfaces',
+      name: 'Surfaces',
+      type: 'center',
+      headline: 'Surface chemistry and material surface analysis',
+      description: 'Advanced surface analysis and characterization services for materials and coatings.',
+      image: 'https://images.unsplash.com/photo-1514996937319-344454492b37?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1503389152951-9f343605f61e?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747851',
+      contact_email: 'surfaces@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 5.3,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 3.8 },
+          { label: '2022', value: 4.5 },
+          { label: '2023', value: 4.9 },
+          { label: '2024', value: 5.3 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 28,
+        activityMix: [
+          { label: 'Surface Analysis', value: 50 },
+          { label: 'Coating Services', value: 30 },
+          { label: 'Research', value: 20 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 5
+    },
+    {
+      id: 'center-protection',
+      slug: 'protection',
+      name: 'Protection',
+      type: 'center',
+      headline: 'Corrosion protection and material protection services',
+      description: 'Specialized services for corrosion prevention, material protection, and coating technologies.',
+      image: 'https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747852',
+      contact_email: 'protection@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 6.1,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 4.2 },
+          { label: '2022', value: 5.1 },
+          { label: '2023', value: 5.7 },
+          { label: '2024', value: 6.1 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 32,
+        activityMix: [
+          { label: 'Corrosion Protection', value: 45 },
+          { label: 'Coating Services', value: 35 },
+          { label: 'Consulting', value: 20 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 6
+    },
+    {
+      id: 'center-tanks-services',
+      slug: 'tanks-services',
+      name: 'Tanks Services',
+      type: 'center',
+      headline: 'Tank inspection, maintenance, and testing services',
+      description: 'Comprehensive services for storage tank inspection, maintenance, and integrity assessment.',
+      image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1569228037739-37f4c9e2ab89?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747853',
+      contact_email: 'tanks.services@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 8.7,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 6.0 },
+          { label: '2022', value: 7.3 },
+          { label: '2023', value: 8.1 },
+          { label: '2024', value: 8.7 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 42,
+        activityMix: [
+          { label: 'Tank Inspection', value: 40 },
+          { label: 'Maintenance Services', value: 35 },
+          { label: 'Testing', value: 25 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 7
+    },
+    {
+      id: 'center-technical-support',
+      slug: 'technical-support-technology',
+      name: 'Technical Support & technology',
+      type: 'center',
+      headline: 'Technical support and technology transfer services',
+      description: 'Providing technical support, technology transfer, and innovation services to the petroleum industry.',
+      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1505731132164-cca90383e1af?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747854',
+      contact_email: 'tech.support@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 4.9,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 3.5 },
+          { label: '2022', value: 4.1 },
+          { label: '2023', value: 4.6 },
+          { label: '2024', value: 4.9 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 25,
+        activityMix: [
+          { label: 'Technical Support', value: 50 },
+          { label: 'Technology Transfer', value: 30 },
+          { label: 'Training', value: 20 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 8
+    },
+    // Units
+    {
+      id: 'unit-central-analytical-labs',
+      slug: 'central-analytical-labs',
+      name: 'Central Analytical labs',
+      type: 'unit',
+      headline: 'Centralized analytical laboratory services',
+      description: 'Comprehensive analytical services providing chemical analysis, quality control, and research support.',
+      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747855',
+      contact_email: 'analytical.labs@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 10.2,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 7.5 },
+          { label: '2022', value: 8.8 },
+          { label: '2023', value: 9.6 },
+          { label: '2024', value: 10.2 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 52,
+        activityMix: [
+          { label: 'Chemical Analysis', value: 45 },
+          { label: 'Quality Control', value: 30 },
+          { label: 'Research Support', value: 25 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 1
+    },
+    {
+      id: 'unit-cathodic-protection',
+      slug: 'cathodic-protection',
+      name: 'Cathodic Protection',
+      type: 'unit',
+      headline: 'Cathodic protection systems and services',
+      description: 'Specialized unit providing cathodic protection design, installation, and monitoring services.',
+      image: 'https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1509395176047-4a66953fd231?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747856',
+      contact_email: 'cathodic.protection@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 5.6,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 3.9 },
+          { label: '2022', value: 4.7 },
+          { label: '2023', value: 5.2 },
+          { label: '2024', value: 5.6 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 30,
+        activityMix: [
+          { label: 'System Design', value: 40 },
+          { label: 'Installation', value: 35 },
+          { label: 'Monitoring', value: 25 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 2
+    },
+    {
+      id: 'unit-earth-surveys',
+      slug: 'earth-surveys-unit',
+      name: 'Earth Surveys Unit',
+      type: 'unit',
+      headline: 'Geological and geophysical survey services',
+      description: 'Comprehensive earth survey services including geological mapping, geophysical exploration, and site characterization.',
+      image: 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747857',
+      contact_email: 'earth.surveys@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 7.8,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 5.4 },
+          { label: '2022', value: 6.5 },
+          { label: '2023', value: 7.2 },
+          { label: '2024', value: 7.8 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 40,
+        activityMix: [
+          { label: 'Geological Surveys', value: 45 },
+          { label: 'Geophysical Exploration', value: 35 },
+          { label: 'Site Characterization', value: 20 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 3
+    },
+    {
+      id: 'unit-eor-non-traditional',
+      slug: 'enhanced-oil-recovery-non-traditional',
+      name: 'Enhanced Oil Recovery by non-traditional ways',
+      type: 'unit',
+      headline: 'Innovative enhanced oil recovery technologies',
+      description: 'Research and development unit focusing on non-traditional EOR methods and innovative recovery techniques.',
+      image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1505731132164-cca90383e1af?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747858',
+      contact_email: 'eor.nontraditional@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 6.4,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 4.3 },
+          { label: '2022', value: 5.2 },
+          { label: '2023', value: 5.9 },
+          { label: '2024', value: 6.4 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 33,
+        activityMix: [
+          { label: 'Research & Development', value: 50 },
+          { label: 'Pilot Testing', value: 30 },
+          { label: 'Field Implementation', value: 20 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 4
+    },
+    {
+      id: 'unit-fuel-research',
+      slug: 'fuel-research-fru',
+      name: 'Fuel Research (FRU)',
+      type: 'unit',
+      headline: 'Fuel research and development unit',
+      description: 'Specialized research unit dedicated to fuel analysis, development, and optimization.',
+      image: 'https://images.unsplash.com/photo-1514996937319-344454492b37?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1503389152951-9f343605f61e?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747859',
+      contact_email: 'fuel.research@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 8.1,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 5.8 },
+          { label: '2022', value: 6.9 },
+          { label: '2023', value: 7.6 },
+          { label: '2024', value: 8.1 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 46,
+        activityMix: [
+          { label: 'Fuel Analysis', value: 40 },
+          { label: 'Research & Development', value: 35 },
+          { label: 'Quality Testing', value: 25 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 5
+    },
+    {
+      id: 'unit-coal-quality-control',
+      slug: 'quality-control-coal-analysis',
+      name: 'QUALITY CONTROL UNIT FOR COAL ANALYSIS',
+      type: 'unit',
+      headline: 'Coal quality control and analysis services',
+      description: 'Specialized unit providing comprehensive coal analysis and quality control services.',
+      image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=1200&h=800&fit=crop',
+      banner_image: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?w=1600&h=900&fit=crop',
+      location: 'Nasr City, Cairo',
+      contact_phone: '+(202)22747860',
+      contact_email: 'coal.quality@epri.edu.eg',
+      equipments: [],
+      products: [],
+      lab_methodology: '',
+      work_volume: {
+        totalIncomeRate: 4.2,
+        currency: 'million EGP',
+        dataPoints: [
+          { label: '2021', value: 3.0 },
+          { label: '2022', value: 3.6 },
+          { label: '2023', value: 3.9 },
+          { label: '2024', value: 4.2 }
+        ]
+      },
+      company_activity: {
+        totalProjects: 22,
+        activityMix: [
+          { label: 'Coal Analysis', value: 55 },
+          { label: 'Quality Control', value: 30 },
+          { label: 'Testing Services', value: 15 }
+        ]
+      },
+      future_prospective: '',
+      services: [],
+      is_featured: false,
+      is_published: true,
+      order_index: 6
+    }
+  ];
+
+  for (const center of serviceCentersData) {
+    const { id, slug, equipments: centerEquipments = [], ...centerData } = center;
+    const upsertedCenter = await (prisma as any).serviceCenter.upsert({
+      where: { slug },
+      update: {
+        ...centerData,
+        slug
+      },
+      create: {
+        id,
+        slug,
+        ...centerData
+      }
+    });
+
+    await (prisma as any).serviceEquipment.deleteMany({
+      where: { serviceCenterId: upsertedCenter.id }
+    });
+
+    if (centerEquipments.length > 0) {
+      for (const equipmentEntry of centerEquipments) {
+        const equipment =
+          typeof equipmentEntry === 'object' && equipmentEntry !== null
+            ? equipmentEntry
+            : { name: String(equipmentEntry ?? 'Equipment'), details: null };
+
+        await (prisma as any).serviceEquipment.create({
+          data: {
+            serviceCenterId: upsertedCenter.id,
+            serviceId: null,
+            name: equipment.name,
+            description: (equipment as any).details ?? (equipment as any).description ?? null,
+            image: (equipment as any).image ?? null,
+            specifications: (equipment as any).specifications ?? null
+          }
+        });
+      }
+    }
+  }
+
+  console.log(`✅ Seeded ${serviceCentersData.length} service centers with analytics and tab content`);
 
   // Create comprehensive laboratories with relational data and Unsplash images
   const laboratoriesData = [
