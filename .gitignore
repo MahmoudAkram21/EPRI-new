@@ -12,7 +12,6 @@
 /out/
 
 # Prisma migrations
-/backend/prisma/migrations
 
 
 # production
