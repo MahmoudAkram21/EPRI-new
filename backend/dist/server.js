@@ -12,9 +12,118 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3002;
 const prisma = new client_1.PrismaClient();
 exports.prisma = prisma;
+const slugify = (value) => value
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+const parseJsonValue = (value, fallback) => {
+    if (value === null || value === undefined) {
+        return fallback;
+    }
+    if (typeof value === 'string') {
+        if (value.trim() === '') {
+            return fallback;
+        }
+        try {
+            return JSON.parse(value);
+        }
+        catch (error) {
+            console.warn('Failed to parse JSON string field. Returning fallback.', { value, error });
+            return fallback;
+        }
+    }
+    return value;
+};
+const normalizeCenterEquipments = (equipments) => {
+    if (!Array.isArray(equipments))
+        return [];
+    return equipments.map((equipment) => ({
+        id: equipment.id,
+        name: equipment.name,
+        details: equipment.description ?? null,
+        description: equipment.description ?? null,
+        image: equipment.image ?? null,
+        specifications: parseJsonValue(equipment.specifications, null)
+    }));
+};
+const parseEquipmentItems = (input) => {
+    const items = parseJsonValue(input, []);
+    if (!Array.isArray(items))
+        return [];
+    return items
+        .map((item) => {
+        if (!item || typeof item !== 'object')
+            return null;
+        const name = item.name ?? item.title ?? '';
+        if (!name)
+            return null;
+        return {
+            name,
+            description: item.details ?? item.description ?? null,
+            image: item.image ?? null,
+            specifications: item.specifications !== undefined
+                ? parseJsonValue(item.specifications, null)
+                : null
+        };
+    })
+        .filter((item) => item !== null);
+};
+const syncServiceCenterEquipments = async (centerId, equipments) => {
+    await prisma.serviceEquipment.deleteMany({
+        where: { service_center_id: centerId }
+    });
+    if (equipments.length === 0) {
+        return;
+    }
+    await prisma.serviceEquipment.createMany({
+        data: equipments.map((equipment) => ({
+            service_center_id: centerId,
+            name: equipment.name,
+            description: equipment.description,
+            image: equipment.image,
+            specifications: equipment.specifications
+        }))
+    });
+};
+const transformServiceCenter = (center) => {
+    const { equipments, ...rest } = center;
+    return {
+        ...rest,
+        equipments: normalizeCenterEquipments(equipments),
+        products: parseJsonValue(center.products, []),
+        work_volume: parseJsonValue(center.work_volume, null),
+        company_activity: parseJsonValue(center.company_activity, null),
+        services: parseJsonValue(center.services, []),
+        metrics: parseJsonValue(center.metrics, null)
+    };
+};
+const parseBoolean = (value, fallback) => {
+    if (value === undefined || value === null)
+        return fallback;
+    if (typeof value === 'boolean')
+        return value;
+    if (typeof value === 'number')
+        return value !== 0;
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === '')
+            return fallback;
+        return ['true', '1', 'yes', 'y', 'on'].includes(normalized);
+    }
+    return fallback;
+};
+const parseNumber = (value, fallback) => {
+    if (value === undefined || value === null || value === '')
+        return fallback;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
 const allowedOrigins = [
     process.env.FRONTEND_URL,
     'http://epri.developteam.site',
@@ -162,6 +271,310 @@ app.get('/api/departments', async (req, res) => {
     catch (err) {
         console.error('Error fetching departments', err);
         res.status(500).json({ message: 'Failed to fetch departments' });
+    }
+});
+app.get('/api/departments/:id', async (req, res) => {
+    console.log('=== DEPARTMENT API CALLED ===', req.params.id);
+    try {
+        const { id } = req.params;
+        const department = await prisma.department.findUnique({
+            where: { id },
+            include: {
+                section: true
+            }
+        });
+        if (!department) {
+            return res.status(404).json({ message: 'Department not found' });
+        }
+        console.log('Fetching staff for department:', id);
+        const departmentStaff = await prisma.$queryRaw `
+      SELECT s.* FROM staff s
+      INNER JOIN department_staff ds ON s.id = ds.staff_id
+      WHERE ds.department_id = ${id}
+    `;
+        console.log('Found staff members:', departmentStaff);
+        const services = await prisma.service.findMany({
+            where: {
+                is_published: true
+            },
+            include: {
+                center_head: true
+            },
+            take: 10
+        });
+        const manager = Array.isArray(departmentStaff) && departmentStaff.length > 0
+            ? departmentStaff.find((staff) => staff.current_admin_position) || departmentStaff[0]
+            : null;
+        console.log('Creating enhanced department with staff count:', Array.isArray(departmentStaff) ? departmentStaff.length : 'not array');
+        const enhancedDepartment = {
+            ...department,
+            staff: departmentStaff || [],
+            manager: manager ? {
+                ...manager,
+                expertise: manager.research_interests ?
+                    manager.research_interests.split(',').map((s) => s.trim()).filter(Boolean) : []
+            } : null,
+            analysisServices: services.map(service => ({
+                id: service.id,
+                name: service.title,
+                description: service.description,
+                price: service.price ? parseFloat(service.price.toString()) : null,
+                duration: service.duration,
+                features: service.features
+            })),
+            equipment: [],
+            achievements: [],
+            researchAreas: [],
+            about: department.description
+        };
+        console.log('Returning enhanced department:', JSON.stringify(enhancedDepartment, null, 2));
+        return res.json({ department: enhancedDepartment });
+    }
+    catch (err) {
+        console.error('Error fetching department:', err);
+        console.error('Error stack:', err?.stack);
+        const basicDepartment = await prisma.department.findUnique({
+            where: { id: req.params.id },
+            include: {
+                section: true
+            }
+        });
+        if (basicDepartment) {
+            console.log('Returning basic department due to error');
+            return res.json({ department: basicDepartment });
+        }
+        return res.status(500).json({ message: 'Failed to fetch department' });
+    }
+});
+app.get('/api/staff/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const staff = await prisma.staff.findUnique({
+            where: { id }
+        });
+        if (!staff) {
+            return res.status(404).json({ message: 'Staff member not found' });
+        }
+        const staffDepartments = await prisma.$queryRaw `
+      SELECT d.*, s.name as section_name FROM department d
+      INNER JOIN department_staff ds ON d.id = ds.department_id
+      LEFT JOIN department_section s ON d.section_id = s.id
+      WHERE ds.staff_id = ${id}
+    `;
+        const researchInterests = staff.research_interests ?
+            (typeof staff.research_interests === 'string'
+                ? staff.research_interests.split(',').map((s) => s.trim()).filter(Boolean)
+                : Array.isArray(staff.research_interests)
+                    ? staff.research_interests
+                    : []) : [];
+        const enhancedStaff = {
+            ...staff,
+            departments: staffDepartments || [],
+            expertise: researchInterests,
+            socialLinks: {
+                email: staff.email,
+                alternativeEmail: staff.alternative_email,
+                phone: staff.phone,
+                mobile: staff.mobile,
+                website: staff.website,
+                googleScholar: staff.google_scholar,
+                researchGate: staff.research_gate,
+                academiaEdu: staff.academia_edu,
+                linkedin: staff.linkedin,
+                facebook: staff.facebook,
+                twitter: staff.twitter,
+                youtube: staff.youtube,
+                instagram: staff.instagram,
+                orcid: staff.orcid,
+                scopus: staff.scopus
+            }
+        };
+        return res.json({ staff: enhancedStaff });
+    }
+    catch (err) {
+        console.error('Error fetching staff:', err);
+        return res.status(500).json({ message: 'Failed to fetch staff' });
+    }
+});
+app.get('/api/staff', async (req, res) => {
+    try {
+        const staff = await prisma.staff.findMany({
+            orderBy: {
+                name: 'asc'
+            }
+        });
+        return res.json({
+            staff,
+            total: staff.length
+        });
+    }
+    catch (error) {
+        console.error('Staff fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.get('/api/service-centers', async (req, res) => {
+    try {
+        const { featured } = req.query;
+        const centers = await prisma.serviceCenter.findMany({
+            where: {
+                is_published: true,
+                ...(featured !== undefined ? { is_featured: featured === 'true' } : {})
+            },
+            include: {
+                equipments: true
+            },
+            orderBy: [
+                { order_index: 'asc' },
+                { created_at: 'desc' }
+            ]
+        });
+        return res.json({
+            centers: centers.map(transformServiceCenter),
+            total: centers.length
+        });
+    }
+    catch (error) {
+        console.error('Service centers fetch error:', error);
+        console.error('Error stack:', error?.stack);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.get('/api/service-centers/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const { preview } = req.query;
+        if (!slug) {
+            return res.status(400).json({ message: 'Service center slug is required' });
+        }
+        const center = await prisma.serviceCenter.findUnique({
+            where: { slug },
+            include: {
+                equipments: true
+            }
+        });
+        if (!center || (!center.is_published && preview !== 'true')) {
+            return res.status(404).json({ message: 'Service center not found' });
+        }
+        return res.json({
+            center: transformServiceCenter(center)
+        });
+    }
+    catch (error) {
+        console.error('Service center fetch error:', error);
+        console.error('Error stack:', error?.stack);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.get('/api/services', async (req, res) => {
+    try {
+        const services = await prisma.service.findMany({
+            where: {
+                is_published: true
+            },
+            include: {
+                center_head: true,
+                equipment: true,
+                tabs: {
+                    orderBy: {
+                        order_index: 'asc'
+                    }
+                }
+            },
+            orderBy: [
+                { group_name: 'asc' },
+                { group_order: 'asc' },
+                { created_at: 'desc' }
+            ]
+        });
+        const servicesWithParsedFeatures = services.map(service => ({
+            ...service,
+            features: service.features ? JSON.parse(service.features) : [],
+            centerHead: service.center_head,
+            center_head: service.center_head
+        }));
+        return res.json({
+            services: servicesWithParsedFeatures,
+            total: services.length
+        });
+    }
+    catch (error) {
+        console.error('Services fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.get('/api/services/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const service = await prisma.service.findUnique({
+            where: { id },
+            include: {
+                center_head: true,
+                equipment: true,
+                tabs: {
+                    orderBy: {
+                        order_index: 'asc'
+                    }
+                }
+            }
+        });
+        if (!service) {
+            return res.status(404).json({ message: 'Service not found' });
+        }
+        const serviceWithParsedFeatures = {
+            ...service,
+            features: service.features ? JSON.parse(service.features) : [],
+            centerHead: service.center_head,
+            center_head: service.center_head
+        };
+        return res.json({ service: serviceWithParsedFeatures });
+    }
+    catch (error) {
+        console.error('Service fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.get('/api/service-center-heads', async (req, res) => {
+    try {
+        const centerHeads = await prisma.serviceCenterHead.findMany({
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+        const centerHeadsWithParsedExpertise = centerHeads.map(head => ({
+            ...head,
+            expertise: head.expertise ? JSON.parse(head.expertise) : []
+        }));
+        return res.json({
+            centerHeads: centerHeadsWithParsedExpertise,
+            total: centerHeads.length
+        });
+    }
+    catch (error) {
+        console.error('Service center heads fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.get('/api/test-department/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log('TEST ENDPOINT CALLED:', id);
+        const departmentStaff = await prisma.$queryRaw `
+      SELECT s.* FROM staff s
+      INNER JOIN department_staff ds ON s.id = ds.staff_id
+      WHERE ds.department_id = ${id}
+    `;
+        console.log('Staff found:', departmentStaff);
+        return res.json({
+            message: 'Test endpoint working',
+            departmentId: id,
+            staffCount: Array.isArray(departmentStaff) ? departmentStaff.length : 0,
+            staff: departmentStaff
+        });
+    }
+    catch (error) {
+        console.error('Test endpoint error:', error);
+        return res.status(500).json({ error: 'Test failed' });
     }
 });
 app.get('/api/health', (req, res) => {
@@ -527,6 +940,766 @@ app.delete('/api/admin/departments/:id', authenticateToken, requireAdmin, async 
     }
     catch (error) {
         console.error('Admin department delete error:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.get('/api/admin/staff', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const staff = await prisma.staff.findMany({
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+        return res.json({
+            staff,
+            total: staff.length
+        });
+    }
+    catch (error) {
+        console.error('Admin staff fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.post('/api/admin/staff', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const staffData = req.body;
+        if (!staffData.name || !staffData.title) {
+            return res.status(400).json({ message: 'Name and title are required' });
+        }
+        const staff = await prisma.staff.create({
+            data: {
+                name: staffData.name,
+                title: staffData.title,
+                academic_position: staffData.academic_position || null,
+                current_admin_position: staffData.current_admin_position || null,
+                ex_admin_position: staffData.ex_admin_position || null,
+                scientific_name: staffData.scientific_name || null,
+                picture: staffData.picture || null,
+                gallery: staffData.gallery || null,
+                bio: staffData.bio || null,
+                research_interests: staffData.research_interests || null,
+                news: staffData.news || null,
+                email: staffData.email || null,
+                alternative_email: staffData.alternative_email || null,
+                phone: staffData.phone || null,
+                mobile: staffData.mobile || null,
+                website: staffData.website || null,
+                google_scholar: staffData.google_scholar || null,
+                research_gate: staffData.research_gate || null,
+                academia_edu: staffData.academia_edu || null,
+                linkedin: staffData.linkedin || null,
+                facebook: staffData.facebook || null,
+                twitter: staffData.twitter || null,
+                google_plus: staffData.google_plus || null,
+                youtube: staffData.youtube || null,
+                wordpress: staffData.wordpress || null,
+                instagram: staffData.instagram || null,
+                mendeley: staffData.mendeley || null,
+                zotero: staffData.zotero || null,
+                evernote: staffData.evernote || null,
+                orcid: staffData.orcid || null,
+                scopus: staffData.scopus || null,
+                publications_count: staffData.publications_count || 0,
+                papers_count: staffData.papers_count || 0,
+                abstracts_count: staffData.abstracts_count || 0,
+                courses_files_count: staffData.courses_files_count || 0,
+                inlinks_count: staffData.inlinks_count || 0,
+                external_links_count: staffData.external_links_count || 0,
+                faculty: staffData.faculty || null,
+                department: staffData.department || null,
+                office_location: staffData.office_location || null,
+                office_hours: staffData.office_hours || null
+            }
+        });
+        return res.json({
+            message: 'Staff member created successfully',
+            staff
+        });
+    }
+    catch (error) {
+        console.error('Admin staff create error:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.get('/api/admin/staff/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ message: 'Staff ID is required' });
+        }
+        const staff = await prisma.staff.findUnique({
+            where: { id }
+        });
+        if (!staff) {
+            return res.status(404).json({ message: 'Staff member not found' });
+        }
+        return res.json({
+            staff
+        });
+    }
+    catch (error) {
+        console.error('Admin staff fetch error:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.put('/api/admin/staff/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+        if (!id) {
+            return res.status(400).json({ message: 'Staff ID is required' });
+        }
+        const existingStaff = await prisma.staff.findUnique({
+            where: { id }
+        });
+        if (!existingStaff) {
+            return res.status(404).json({ message: 'Staff member not found' });
+        }
+        const updatedStaff = await prisma.staff.update({
+            where: { id },
+            data: {
+                name: updateData.name !== undefined ? updateData.name : existingStaff.name,
+                title: updateData.title !== undefined ? updateData.title : existingStaff.title,
+                academic_position: updateData.academic_position !== undefined ? updateData.academic_position : existingStaff.academic_position,
+                current_admin_position: updateData.current_admin_position !== undefined ? updateData.current_admin_position : existingStaff.current_admin_position,
+                ex_admin_position: updateData.ex_admin_position !== undefined ? updateData.ex_admin_position : existingStaff.ex_admin_position,
+                scientific_name: updateData.scientific_name !== undefined ? updateData.scientific_name : existingStaff.scientific_name,
+                picture: updateData.picture !== undefined ? updateData.picture : existingStaff.picture,
+                gallery: updateData.gallery !== undefined ? updateData.gallery : existingStaff.gallery,
+                bio: updateData.bio !== undefined ? updateData.bio : existingStaff.bio,
+                research_interests: updateData.research_interests !== undefined ? updateData.research_interests : existingStaff.research_interests,
+                news: updateData.news !== undefined ? updateData.news : existingStaff.news,
+                email: updateData.email !== undefined ? updateData.email : existingStaff.email,
+                alternative_email: updateData.alternative_email !== undefined ? updateData.alternative_email : existingStaff.alternative_email,
+                phone: updateData.phone !== undefined ? updateData.phone : existingStaff.phone,
+                mobile: updateData.mobile !== undefined ? updateData.mobile : existingStaff.mobile,
+                website: updateData.website !== undefined ? updateData.website : existingStaff.website,
+                google_scholar: updateData.google_scholar !== undefined ? updateData.google_scholar : existingStaff.google_scholar,
+                research_gate: updateData.research_gate !== undefined ? updateData.research_gate : existingStaff.research_gate,
+                academia_edu: updateData.academia_edu !== undefined ? updateData.academia_edu : existingStaff.academia_edu,
+                linkedin: updateData.linkedin !== undefined ? updateData.linkedin : existingStaff.linkedin,
+                facebook: updateData.facebook !== undefined ? updateData.facebook : existingStaff.facebook,
+                twitter: updateData.twitter !== undefined ? updateData.twitter : existingStaff.twitter,
+                google_plus: updateData.google_plus !== undefined ? updateData.google_plus : existingStaff.google_plus,
+                youtube: updateData.youtube !== undefined ? updateData.youtube : existingStaff.youtube,
+                wordpress: updateData.wordpress !== undefined ? updateData.wordpress : existingStaff.wordpress,
+                instagram: updateData.instagram !== undefined ? updateData.instagram : existingStaff.instagram,
+                mendeley: updateData.mendeley !== undefined ? updateData.mendeley : existingStaff.mendeley,
+                zotero: updateData.zotero !== undefined ? updateData.zotero : existingStaff.zotero,
+                evernote: updateData.evernote !== undefined ? updateData.evernote : existingStaff.evernote,
+                orcid: updateData.orcid !== undefined ? updateData.orcid : existingStaff.orcid,
+                scopus: updateData.scopus !== undefined ? updateData.scopus : existingStaff.scopus,
+                publications_count: updateData.publications_count !== undefined ? updateData.publications_count : existingStaff.publications_count,
+                papers_count: updateData.papers_count !== undefined ? updateData.papers_count : existingStaff.papers_count,
+                abstracts_count: updateData.abstracts_count !== undefined ? updateData.abstracts_count : existingStaff.abstracts_count,
+                courses_files_count: updateData.courses_files_count !== undefined ? updateData.courses_files_count : existingStaff.courses_files_count,
+                inlinks_count: updateData.inlinks_count !== undefined ? updateData.inlinks_count : existingStaff.inlinks_count,
+                external_links_count: updateData.external_links_count !== undefined ? updateData.external_links_count : existingStaff.external_links_count,
+                faculty: updateData.faculty !== undefined ? updateData.faculty : existingStaff.faculty,
+                department: updateData.department !== undefined ? updateData.department : existingStaff.department,
+                office_location: updateData.office_location !== undefined ? updateData.office_location : existingStaff.office_location,
+                office_hours: updateData.office_hours !== undefined ? updateData.office_hours : existingStaff.office_hours
+            }
+        });
+        return res.json({
+            message: 'Staff member updated successfully',
+            staff: updatedStaff
+        });
+    }
+    catch (error) {
+        console.error('Admin staff update error:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.delete('/api/admin/staff/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ message: 'Staff ID is required' });
+        }
+        const existingStaff = await prisma.staff.findUnique({
+            where: { id }
+        });
+        if (!existingStaff) {
+            return res.status(404).json({ message: 'Staff member not found' });
+        }
+        await prisma.staff.delete({
+            where: { id }
+        });
+        return res.json({
+            message: 'Staff member deleted successfully'
+        });
+    }
+    catch (error) {
+        console.error('Admin staff delete error:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.get('/api/admin/departments/:id/staff', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const departmentStaff = await prisma.$queryRaw `
+      SELECT s.* FROM staff s
+      INNER JOIN department_staff ds ON s.id = ds.staff_id
+      WHERE ds.department_id = ${id}
+    `;
+        return res.json({
+            staff: departmentStaff || [],
+            total: Array.isArray(departmentStaff) ? departmentStaff.length : 0
+        });
+    }
+    catch (error) {
+        console.error('Department staff fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.post('/api/admin/departments/:id/staff', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { staffIds } = req.body;
+        if (!id) {
+            return res.status(400).json({ message: 'Department ID is required' });
+        }
+        if (!Array.isArray(staffIds) || staffIds.length === 0) {
+            return res.status(400).json({ message: 'Staff IDs array is required' });
+        }
+        await prisma.departmentStaff.deleteMany({
+            where: { department_id: id }
+        });
+        const assignments = staffIds.map((staffId) => ({
+            department_id: id,
+            staff_id: staffId
+        }));
+        await prisma.departmentStaff.createMany({
+            data: assignments
+        });
+        return res.json({
+            message: 'Staff assignments updated successfully'
+        });
+    }
+    catch (error) {
+        console.error('Department staff assignment error:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.delete('/api/admin/departments/:id/staff/:staffId', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id, staffId } = req.params;
+        if (!id || !staffId) {
+            return res.status(400).json({ message: 'Department ID and Staff ID are required' });
+        }
+        await prisma.departmentStaff.deleteMany({
+            where: {
+                department_id: id,
+                staff_id: staffId
+            }
+        });
+        return res.json({
+            message: 'Staff member removed from department successfully'
+        });
+    }
+    catch (error) {
+        console.error('Department staff removal error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.get('/api/admin/services', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const services = await prisma.service.findMany({
+            include: {
+                center_head: true,
+                equipment: true,
+                tabs: {
+                    orderBy: {
+                        order_index: 'asc'
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+        const servicesWithParsedFeatures = services.map(service => ({
+            ...service,
+            features: service.features ? JSON.parse(service.features) : []
+        }));
+        return res.json({
+            services: servicesWithParsedFeatures,
+            total: services.length
+        });
+    }
+    catch (error) {
+        console.error('Admin services fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.get('/api/admin/services/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ message: 'Service ID is required' });
+        }
+        const service = await prisma.service.findUnique({
+            where: { id },
+            include: {
+                center_head: true,
+                equipment: true,
+                tabs: {
+                    orderBy: {
+                        order_index: 'asc'
+                    }
+                }
+            }
+        });
+        if (!service) {
+            return res.status(404).json({ message: 'Service not found' });
+        }
+        const serviceWithParsedFeatures = {
+            ...service,
+            features: service.features ? JSON.parse(service.features) : []
+        };
+        return res.json({ service: serviceWithParsedFeatures });
+    }
+    catch (error) {
+        console.error('Admin service fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.post('/api/admin/services', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const serviceData = req.body;
+        if (!serviceData.title || !serviceData.description || !serviceData.category) {
+            return res.status(400).json({ message: 'Title, description, and category are required' });
+        }
+        const createData = {
+            title: serviceData.title,
+            description: serviceData.description,
+            category: serviceData.category,
+            price: serviceData.price || 0,
+            is_free: serviceData.is_free ?? false,
+            is_featured: serviceData.is_featured ?? false,
+            is_published: serviceData.is_published ?? true,
+            group_order: serviceData.group_order || 0
+        };
+        if (serviceData.subtitle)
+            createData.subtitle = serviceData.subtitle;
+        if (serviceData.image)
+            createData.image = serviceData.image;
+        if (serviceData.icon)
+            createData.icon = serviceData.icon;
+        if (serviceData.features)
+            createData.features = JSON.stringify(serviceData.features);
+        if (serviceData.duration)
+            createData.duration = serviceData.duration;
+        if (serviceData.center_head_id)
+            createData.center_head_id = serviceData.center_head_id;
+        if (serviceData.group_name)
+            createData.group_name = serviceData.group_name;
+        const service = await prisma.service.create({
+            data: createData,
+            include: {
+                center_head: true
+            }
+        });
+        if (serviceData.tabs && Array.isArray(serviceData.tabs)) {
+            await prisma.serviceTab.createMany({
+                data: serviceData.tabs.map((tab) => ({
+                    service_id: service.id,
+                    title: tab.title,
+                    content: tab.content,
+                    order_index: tab.order_index || 0
+                }))
+            });
+        }
+        return res.json({ service });
+    }
+    catch (error) {
+        console.error('Admin service create error:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.put('/api/admin/services/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const serviceData = req.body;
+        if (!id) {
+            return res.status(400).json({ message: 'Service ID is required' });
+        }
+        const existingService = await prisma.service.findUnique({
+            where: { id }
+        });
+        if (!existingService) {
+            return res.status(404).json({ message: 'Service not found' });
+        }
+        const updateData = {};
+        if (serviceData.title !== undefined)
+            updateData.title = serviceData.title;
+        if (serviceData.subtitle !== undefined)
+            updateData.subtitle = serviceData.subtitle || null;
+        if (serviceData.description !== undefined)
+            updateData.description = serviceData.description;
+        if (serviceData.image !== undefined)
+            updateData.image = serviceData.image || null;
+        if (serviceData.category !== undefined)
+            updateData.category = serviceData.category;
+        if (serviceData.icon !== undefined)
+            updateData.icon = serviceData.icon || null;
+        if (serviceData.features !== undefined)
+            updateData.features = serviceData.features ? JSON.stringify(serviceData.features) : undefined;
+        if (serviceData.duration !== undefined)
+            updateData.duration = serviceData.duration || null;
+        if (serviceData.price !== undefined)
+            updateData.price = serviceData.price || 0;
+        if (serviceData.is_free !== undefined)
+            updateData.is_free = serviceData.is_free;
+        if (serviceData.is_featured !== undefined)
+            updateData.is_featured = serviceData.is_featured;
+        if (serviceData.is_published !== undefined)
+            updateData.is_published = serviceData.is_published;
+        if (serviceData.center_head_id !== undefined)
+            updateData.center_head_id = serviceData.center_head_id || null;
+        if (serviceData.group_name !== undefined)
+            updateData.group_name = serviceData.group_name || null;
+        if (serviceData.group_order !== undefined)
+            updateData.group_order = serviceData.group_order || 0;
+        const service = await prisma.service.update({
+            where: { id },
+            data: updateData,
+            include: {
+                center_head: true
+            }
+        });
+        if (serviceData.tabs && Array.isArray(serviceData.tabs)) {
+            await prisma.serviceTab.deleteMany({
+                where: { service_id: id }
+            });
+            if (serviceData.tabs.length > 0) {
+                await prisma.serviceTab.createMany({
+                    data: serviceData.tabs.map((tab) => ({
+                        service_id: id,
+                        title: tab.title,
+                        content: tab.content,
+                        order_index: tab.order_index || 0
+                    }))
+                });
+            }
+        }
+        return res.json({ service });
+    }
+    catch (error) {
+        console.error('Admin service update error:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.delete('/api/admin/services/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ message: 'Service ID is required' });
+        }
+        const existingService = await prisma.service.findUnique({
+            where: { id }
+        });
+        if (!existingService) {
+            return res.status(404).json({ message: 'Service not found' });
+        }
+        await prisma.service.delete({
+            where: { id }
+        });
+        return res.json({
+            message: 'Service deleted successfully'
+        });
+    }
+    catch (error) {
+        console.error('Admin service delete error:', error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.get('/api/admin/service-centers', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { includeHidden, featured } = req.query;
+        const centers = await prisma.serviceCenter.findMany({
+            where: {
+                ...(includeHidden === 'true' ? {} : { is_published: true }),
+                ...(featured !== undefined ? { is_featured: featured === 'true' } : {})
+            },
+            include: {
+                equipments: true
+            },
+            orderBy: [
+                { order_index: 'asc' },
+                { created_at: 'desc' }
+            ]
+        });
+        return res.json({
+            centers: centers.map(transformServiceCenter),
+            total: centers.length
+        });
+    }
+    catch (error) {
+        console.error('Admin service centers fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.get('/api/admin/service-centers/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ message: 'Service center ID or slug is required' });
+        }
+        let center = await prisma.serviceCenter.findUnique({
+            where: { id },
+            include: {
+                equipments: true
+            }
+        });
+        if (!center) {
+            center = await prisma.serviceCenter.findUnique({
+                where: { slug: id },
+                include: {
+                    equipments: true
+                }
+            });
+        }
+        if (!center) {
+            return res.status(404).json({ message: 'Service center not found' });
+        }
+        return res.json({ center: transformServiceCenter(center) });
+    }
+    catch (error) {
+        console.error('Admin service center fetch error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+app.post('/api/admin/service-centers', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { name, slug: slugInput, headline, description, image, banner_image, bannerImage, location, contact_phone, contactPhone, contact_email, contactEmail, lab_methodology, labMethodology, future_prospective, futureProspective, is_featured, isFeatured, is_published, isPublished, order_index, orderIndex } = req.body;
+        if (!name) {
+            return res.status(400).json({ message: 'Service center name is required' });
+        }
+        const finalSlug = slugify(slugInput || name);
+        if (!finalSlug) {
+            return res.status(400).json({ message: 'Unable to generate a valid slug for the service center' });
+        }
+        const existingCenter = await prisma.serviceCenter.findUnique({
+            where: { slug: finalSlug }
+        });
+        if (existingCenter) {
+            return res.status(400).json({ message: 'A service center with this slug already exists' });
+        }
+        const equipmentsInput = req.body.equipments ?? req.body.equipmentList ?? req.body.equipment_list;
+        const productsInput = req.body.products ?? req.body.productList ?? req.body.product_list;
+        const workVolumeInput = req.body.work_volume ?? req.body.workVolume;
+        const companyActivityInput = req.body.company_activity ?? req.body.companyActivity;
+        const servicesInput = req.body.services ?? req.body.serviceTabs ?? req.body.service_tabs;
+        const metricsInput = req.body.metrics ?? req.body.analytics ?? req.body.kpis;
+        const equipmentItems = parseEquipmentItems(equipmentsInput);
+        const center = await prisma.serviceCenter.create({
+            data: {
+                name,
+                slug: finalSlug,
+                headline: headline ?? null,
+                description: description ?? null,
+                image: image ?? null,
+                banner_image: (banner_image ?? bannerImage) || null,
+                location: location ?? null,
+                contact_phone: (contact_phone ?? contactPhone) || null,
+                contact_email: (contact_email ?? contactEmail) || null,
+                lab_methodology: (lab_methodology ?? labMethodology) || null,
+                future_prospective: (future_prospective ?? futureProspective) || null,
+                products: parseJsonValue(productsInput, []),
+                work_volume: parseJsonValue(workVolumeInput, null),
+                company_activity: parseJsonValue(companyActivityInput, null),
+                services: parseJsonValue(servicesInput, []),
+                metrics: parseJsonValue(metricsInput, null),
+                is_featured: parseBoolean(is_featured ?? isFeatured, false),
+                is_published: parseBoolean(is_published ?? isPublished, true),
+                order_index: parseNumber(order_index ?? orderIndex, 0)
+            }
+        });
+        await syncServiceCenterEquipments(center.id, equipmentItems);
+        const centerWithRelations = await prisma.serviceCenter.findUnique({
+            where: { id: center.id },
+            include: {
+                equipments: true
+            }
+        });
+        return res.json({
+            message: 'Service center created successfully',
+            center: centerWithRelations ? transformServiceCenter(centerWithRelations) : transformServiceCenter(center)
+        });
+    }
+    catch (error) {
+        console.error('Admin service center create error:', error);
+        if (error?.code === 'P2002') {
+            return res.status(400).json({ message: 'A service center with this slug already exists' });
+        }
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.put('/api/admin/service-centers/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ message: 'Service center ID is required' });
+        }
+        const existingCenter = await prisma.serviceCenter.findUnique({
+            where: { id }
+        });
+        if (!existingCenter) {
+            return res.status(404).json({ message: 'Service center not found' });
+        }
+        const { name, slug: slugInput, headline, description, image, banner_image, bannerImage, location, contact_phone, contactPhone, contact_email, contactEmail, lab_methodology, labMethodology, future_prospective, futureProspective, is_featured, isFeatured, is_published, isPublished, order_index, orderIndex } = req.body;
+        const updateData = {};
+        if (name !== undefined)
+            updateData.name = name;
+        if (slugInput !== undefined) {
+            const finalSlug = slugify(slugInput);
+            if (!finalSlug) {
+                return res.status(400).json({ message: 'Invalid slug provided' });
+            }
+            if (finalSlug !== existingCenter.slug) {
+                const slugConflict = await prisma.serviceCenter.findUnique({
+                    where: { slug: finalSlug }
+                });
+                if (slugConflict && slugConflict.id !== id) {
+                    return res.status(400).json({ message: 'Another service center with this slug already exists' });
+                }
+            }
+            updateData.slug = finalSlug;
+        }
+        if (headline !== undefined)
+            updateData.headline = headline ?? null;
+        if (description !== undefined)
+            updateData.description = description ?? null;
+        if (image !== undefined)
+            updateData.image = image ?? null;
+        const bannerValue = banner_image ?? bannerImage;
+        if (bannerValue !== undefined)
+            updateData.banner_image = bannerValue || null;
+        if (location !== undefined)
+            updateData.location = location ?? null;
+        const phoneValue = contact_phone ?? contactPhone;
+        if (phoneValue !== undefined)
+            updateData.contact_phone = phoneValue || null;
+        const emailValue = contact_email ?? contactEmail;
+        if (emailValue !== undefined)
+            updateData.contact_email = emailValue || null;
+        const labMethodValue = lab_methodology ?? labMethodology;
+        if (labMethodValue !== undefined)
+            updateData.lab_methodology = labMethodValue || null;
+        const futureValue = future_prospective ?? futureProspective;
+        if (futureValue !== undefined)
+            updateData.future_prospective = futureValue || null;
+        const equipmentsInput = req.body.equipments ?? req.body.equipmentList ?? req.body.equipment_list;
+        const equipmentItems = equipmentsInput !== undefined ? parseEquipmentItems(equipmentsInput) : null;
+        const productsInput = req.body.products ?? req.body.productList ?? req.body.product_list;
+        if (productsInput !== undefined) {
+            updateData.products = parseJsonValue(productsInput, []);
+        }
+        const workVolumeInput = req.body.work_volume ?? req.body.workVolume;
+        if (workVolumeInput !== undefined) {
+            updateData.work_volume = parseJsonValue(workVolumeInput, null);
+        }
+        const companyActivityInput = req.body.company_activity ?? req.body.companyActivity;
+        if (companyActivityInput !== undefined) {
+            updateData.company_activity = parseJsonValue(companyActivityInput, null);
+        }
+        const servicesInput = req.body.services ?? req.body.serviceTabs ?? req.body.service_tabs;
+        if (servicesInput !== undefined) {
+            updateData.services = parseJsonValue(servicesInput, []);
+        }
+        const metricsInput = req.body.metrics ?? req.body.analytics ?? req.body.kpis;
+        if (metricsInput !== undefined) {
+            updateData.metrics = parseJsonValue(metricsInput, null);
+        }
+        if (is_featured !== undefined || isFeatured !== undefined) {
+            updateData.is_featured = parseBoolean(is_featured ?? isFeatured, existingCenter.is_featured);
+        }
+        if (is_published !== undefined || isPublished !== undefined) {
+            updateData.is_published = parseBoolean(is_published ?? isPublished, existingCenter.is_published);
+        }
+        if (order_index !== undefined || orderIndex !== undefined) {
+            updateData.order_index = parseNumber(order_index ?? orderIndex, existingCenter.order_index);
+        }
+        const center = await prisma.serviceCenter.update({
+            where: { id },
+            data: updateData
+        });
+        if (equipmentItems !== null) {
+            await syncServiceCenterEquipments(center.id, equipmentItems);
+        }
+        const centerWithRelations = await prisma.serviceCenter.findUnique({
+            where: { id },
+            include: {
+                equipments: true
+            }
+        });
+        return res.json({
+            message: 'Service center updated successfully',
+            center: centerWithRelations ? transformServiceCenter(centerWithRelations) : transformServiceCenter(center)
+        });
+    }
+    catch (error) {
+        console.error('Admin service center update error:', error);
+        if (error?.code === 'P2002') {
+            return res.status(400).json({ message: 'A service center with this slug already exists' });
+        }
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+    }
+});
+app.delete('/api/admin/service-centers/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ message: 'Service center ID is required' });
+        }
+        const existingCenter = await prisma.serviceCenter.findUnique({
+            where: { id }
+        });
+        if (!existingCenter) {
+            return res.status(404).json({ message: 'Service center not found' });
+        }
+        await prisma.serviceCenter.delete({
+            where: { id }
+        });
+        return res.json({ message: 'Service center deleted successfully' });
+    }
+    catch (error) {
+        console.error('Admin service center delete error:', error);
         return res.status(500).json({
             message: 'Internal server error',
             error: process.env.NODE_ENV === 'development' ? error?.message : undefined
