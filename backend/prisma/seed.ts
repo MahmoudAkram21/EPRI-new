@@ -2977,6 +2977,21 @@ async function main() {
 
   console.log('✅ All existing data updated with Unsplash images');
 
+  // Initialize Site Stats
+  console.log('📊 Initializing site statistics...');
+  const existingStats = await prisma.siteStats.findFirst();
+  if (!existingStats) {
+    await prisma.siteStats.create({
+      data: {
+        total_visits: 0,
+        unique_sessions: 0
+      }
+    });
+    console.log('✅ Site statistics initialized');
+  } else {
+    console.log('✅ Site statistics already exist');
+  }
+
   console.log('🎉 Database seeding completed successfully with comprehensive relational data and Unsplash images!');
 }
 
