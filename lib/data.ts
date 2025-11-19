@@ -1157,7 +1157,7 @@ export const news: NewsPost[] = [
     title: "Novel Biostratigraphic Framework for Egyptian Basins",
     date: "2025-03-18",
     author: "Prof. Samira El-Naggar",
-    image: "/paleontology-lab.jpg",
+    image: "/placeholder.jpg",
     excerpt:
       "Paleontology laboratory establishes comprehensive biostratigraphic zonation for Cretaceous-Tertiary sequences in Egypt.",
     content:

@@ -4,12 +4,13 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { createHttpsServer, isHttpsEnabled } from './https-server';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3002;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3002;
 const prisma = new PrismaClient();
 
 // Helper functions for service centers
@@ -4051,14 +4052,32 @@ app.use('*', (req, res) => {
 });
 
 // Start server
-app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}`);
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-  console.log(`🔐 Auth endpoints ready: /api/auth/*`);
-  console.log(`🏢 Department endpoints ready: /api/departments, /api/department-sections`);
-  console.log(`🔧 Services endpoints ready: /api/services, /api/admin/services, /api/service-center-heads`);
-  console.log(`🏛️ Service Centers endpoints ready: /api/service-centers, /api/admin/service-centers`);
-});
+if (isHttpsEnabled()) {
+  // Start HTTPS server
+  const httpsServer = createHttpsServer(app, port);
+  
+  if (httpsServer) {
+    console.log(`🚀 Server running on HTTPS port ${process.env.HTTPS_PORT || port}`);
+    console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'https://localhost:3000'}`);
+  } else {
+    // Fallback to HTTP if HTTPS setup fails
+    app.listen(port, () => {
+      console.log(`🚀 Server running on HTTP port ${port} (HTTPS setup failed)`);
+      console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+    });
+  }
+} else {
+  // Start HTTP server (default)
+  app.listen(port, () => {
+    console.log(`🚀 Server running on HTTP port ${port}`);
+    console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  });
+}
+
+console.log(`🔐 Auth endpoints ready: /api/auth/*`);
+console.log(`🏢 Department endpoints ready: /api/departments, /api/department-sections`);
+console.log(`🔧 Services endpoints ready: /api/services, /api/admin/services, /api/service-center-heads`);
+console.log(`🏛️ Service Centers endpoints ready: /api/service-centers, /api/admin/service-centers`);
 
 // Graceful shutdown
 process.on('SIGINT', async () => {

@@ -4,12 +4,13 @@ import dotenv from 'dotenv';
 import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { createHttpsServer, isHttpsEnabled } from './https-server';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3002;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3002;
 const prisma = new PrismaClient();
 
 const slugify = (value: string): string =>
@@ -2268,10 +2269,28 @@ app.use('*', (req, res) => {
 });
 
 // Start server
-app.listen(port, () => {
-  console.log(`🚀 EPRI Backend server running on port ${port}`);
-  console.log(`📊 Health check: http://localhost:${port}/api/health`);
-});
+if (isHttpsEnabled()) {
+  // Start HTTPS server
+  const httpsServer = createHttpsServer(app, port);
+  
+  if (httpsServer) {
+    const httpsPort = process.env.HTTPS_PORT ? parseInt(process.env.HTTPS_PORT) : port;
+    console.log(`🚀 EPRI Backend server running on HTTPS port ${httpsPort}`);
+    console.log(`📊 Health check: https://localhost:${httpsPort}/api/health`);
+  } else {
+    // Fallback to HTTP if HTTPS setup fails
+    app.listen(port, () => {
+      console.log(`🚀 EPRI Backend server running on HTTP port ${port} (HTTPS setup failed)`);
+      console.log(`📊 Health check: http://localhost:${port}/api/health`);
+    });
+  }
+} else {
+  // Start HTTP server (default)
+  app.listen(port, () => {
+    console.log(`🚀 EPRI Backend server running on HTTP port ${port}`);
+    console.log(`📊 Health check: http://localhost:${port}/api/health`);
+  });
+}
 
 // Graceful shutdown
 process.on('SIGINT', async () => {

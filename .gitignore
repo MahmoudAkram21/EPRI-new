@@ -32,3 +32,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SSL certificates (never commit these!)
+/backend/certs/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
