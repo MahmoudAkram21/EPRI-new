@@ -9,9 +9,10 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const client_1 = require("@prisma/client");
+const https_server_1 = require("./https-server");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const port = process.env.PORT || 3002;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3002;
 const prisma = new client_1.PrismaClient();
 const slugify = (value) => value
     .toLowerCase()
@@ -3264,14 +3265,29 @@ app.delete('/api/admin/service-centers/:id', authenticateToken, requireAdmin, as
 app.use('*', (req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
-app.listen(port, () => {
-    console.log(`🚀 Server running on port ${port}`);
-    console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-    console.log(`🔐 Auth endpoints ready: /api/auth/*`);
-    console.log(`🏢 Department endpoints ready: /api/departments, /api/department-sections`);
-    console.log(`🔧 Services endpoints ready: /api/services, /api/admin/services, /api/service-center-heads`);
-    console.log(`🏛️ Service Centers endpoints ready: /api/service-centers, /api/admin/service-centers`);
-});
+if ((0, https_server_1.isHttpsEnabled)()) {
+    const httpsServer = (0, https_server_1.createHttpsServer)(app, port);
+    if (httpsServer) {
+        console.log(`🚀 Server running on HTTPS port ${process.env.HTTPS_PORT || port}`);
+        console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'https://localhost:3000'}`);
+    }
+    else {
+        app.listen(port, () => {
+            console.log(`🚀 Server running on HTTP port ${port} (HTTPS setup failed)`);
+            console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+        });
+    }
+}
+else {
+    app.listen(port, () => {
+        console.log(`🚀 Server running on HTTP port ${port}`);
+        console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+    });
+}
+console.log(`🔐 Auth endpoints ready: /api/auth/*`);
+console.log(`🏢 Department endpoints ready: /api/departments, /api/department-sections`);
+console.log(`🔧 Services endpoints ready: /api/services, /api/admin/services, /api/service-center-heads`);
+console.log(`🏛️ Service Centers endpoints ready: /api/service-centers, /api/admin/service-centers`);
 process.on('SIGINT', async () => {
     console.log('\n🛑 Shutting down server...');
     await prisma.$disconnect();

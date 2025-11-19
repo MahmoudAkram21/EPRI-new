@@ -10,9 +10,10 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const https_server_1 = require("./https-server");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const port = process.env.PORT || 3002;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3002;
 const prisma = new client_1.PrismaClient();
 exports.prisma = prisma;
 const slugify = (value) => value
@@ -1943,10 +1944,26 @@ app.use((err, req, res, next) => {
 app.use('*', (req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
-app.listen(port, () => {
-    console.log(`🚀 EPRI Backend server running on port ${port}`);
-    console.log(`📊 Health check: http://localhost:${port}/api/health`);
-});
+if ((0, https_server_1.isHttpsEnabled)()) {
+    const httpsServer = (0, https_server_1.createHttpsServer)(app, port);
+    if (httpsServer) {
+        const httpsPort = process.env.HTTPS_PORT ? parseInt(process.env.HTTPS_PORT) : port;
+        console.log(`🚀 EPRI Backend server running on HTTPS port ${httpsPort}`);
+        console.log(`📊 Health check: https://localhost:${httpsPort}/api/health`);
+    }
+    else {
+        app.listen(port, () => {
+            console.log(`🚀 EPRI Backend server running on HTTP port ${port} (HTTPS setup failed)`);
+            console.log(`📊 Health check: http://localhost:${port}/api/health`);
+        });
+    }
+}
+else {
+    app.listen(port, () => {
+        console.log(`🚀 EPRI Backend server running on HTTP port ${port}`);
+        console.log(`📊 Health check: http://localhost:${port}/api/health`);
+    });
+}
 process.on('SIGINT', async () => {
     console.log('\n🛑 Shutting down server...');
     await prisma.$disconnect();
