@@ -51,7 +51,8 @@ export function VisitorWidget({ className = "" }: VisitorWidgetProps) {
 
   const trackVisit = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/visitor-stats/track`, {
+      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/visitor-stats/track`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000'}/api/visitor-stats/track`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

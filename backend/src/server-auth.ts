@@ -166,7 +166,8 @@ const allowedOrigins = [
   'https://epri.developteam.site:5000',
   'http://localhost:3000',
   'http://localhost:3002',
-  'https://localhost:3000'
+  'https://localhost:3000',
+  'https://epri.developteam.site/'
 ].filter(Boolean) as string[];
 
 app.use(cors({

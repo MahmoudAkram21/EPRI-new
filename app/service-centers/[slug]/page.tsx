@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { ServiceCenterTabs } from "@/components/service-center-tabs"
 import type { ServiceCenter } from "@/types/service-center"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api"
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://epri.developteam.site:5000/api"
 
 type ServiceCenterResponse = {
   center: ServiceCenter
@@ -32,10 +33,6 @@ async function fetchServiceCenter(slug: string): Promise<ServiceCenter | null> {
     }
 
     return {
-      equipments: [],
-      products: [],
-      services: [],
-      metrics: {},
       ...data.center,
       equipments: Array.isArray(data.center.equipments) ? data.center.equipments : [],
       products: Array.isArray(data.center.products) ? data.center.products : [],

@@ -29,7 +29,8 @@ import Image from "next/image"
 
 async function getStaff(staffId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api'
+    // const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000/api'
     const response = await fetch(`${apiUrl}/staff/${staffId}`, {
       cache: 'no-store'
     })
