@@ -206,6 +206,49 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  const timestamp = new Date().toISOString();
+  
+  // Get client IP (considering proxies/load balancers)
+  const clientIP = req.headers['x-forwarded-for']?.toString().split(',')[0] || 
+                   req.headers['x-real-ip']?.toString() || 
+                   req.socket.remoteAddress || 
+                   'unknown';
+  
+  // Log request details
+  console.log(`\n📥 [${timestamp}] ${req.method} ${req.originalUrl}`);
+  console.log(`   IP: ${clientIP}`);
+  console.log(`   Origin: ${req.headers.origin || 'none'}`);
+  console.log(`   User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
+  
+  // Log query parameters if present
+  if (Object.keys(req.query).length > 0) {
+    console.log(`   Query: ${JSON.stringify(req.query)}`);
+  }
+  
+  // Log request body for POST/PUT/PATCH (sanitized to avoid logging sensitive data)
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body && Object.keys(req.body).length > 0) {
+    // Create sanitized copy (remove password fields)
+    const sanitizedBody = { ...req.body };
+    if (sanitizedBody.password) sanitizedBody.password = '[REDACTED]';
+    if (sanitizedBody.password_hash) sanitizedBody.password_hash = '[REDACTED]';
+    if (sanitizedBody.token) sanitizedBody.token = '[REDACTED]';
+    
+    console.log(`   Body: ${JSON.stringify(sanitizedBody).substring(0, 500)}${JSON.stringify(sanitizedBody).length > 500 ? '...' : ''}`);
+  }
+  
+  // Log response when finished
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    const statusColor = res.statusCode >= 400 ? '🔴' : res.statusCode >= 300 ? '🟡' : '🟢';
+    console.log(`📤 [${new Date().toISOString()}] ${statusColor} ${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`);
+  });
+  
+  next();
+});
+
 // Import visitor stats routes
 import visitorStatsRoutes from './routes/visitor-stats';
 

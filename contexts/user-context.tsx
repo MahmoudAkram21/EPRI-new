@@ -231,7 +231,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         enrolledCourses,
         wishlist,
         lessonProgress,
-        lessonNotes,
+        lessonNotes, 
         isLoading,
         error,
         login,
