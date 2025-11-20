@@ -515,11 +515,11 @@ app.get('/api/courses', async (req, res) => {
     ]);
     
     // Transform courses data to match frontend expectations
-    const transformedCourses = courses.map(course => ({
+    const transformedCourses = courses.map((course: (typeof courses)[0]) => ({
       ...course,
       lessons_count: course.lessons.length,
-      total_duration: course.lessons.reduce((sum, lesson) => sum + lesson.duration, 0),
-      preview_lessons: course.lessons.filter(lesson => lesson.is_preview).length
+      total_duration: course.lessons.reduce((sum: number, lesson: (typeof course.lessons)[0]) => sum + lesson.duration, 0),
+      preview_lessons: course.lessons.filter((lesson: (typeof course.lessons)[0]) => lesson.is_preview).length
     }));
     
     console.log(`Found ${transformedCourses.length} courses`);
@@ -570,8 +570,8 @@ app.get('/api/courses/:id', async (req, res) => {
       objectives: course.objectives ? JSON.parse(course.objectives as string) : [],
       requirements: course.requirements ? JSON.parse(course.requirements as string) : [],
       lessons_count: course.lessons.length,
-      total_duration: course.lessons.reduce((sum, lesson) => sum + lesson.duration, 0),
-      preview_lessons: course.lessons.filter(lesson => lesson.is_preview)
+      total_duration: course.lessons.reduce((sum: number, lesson: (typeof course.lessons)[0]) => sum + lesson.duration, 0),
+      preview_lessons: course.lessons.filter((lesson: (typeof course.lessons)[0]) => lesson.is_preview)
     };
     
     return res.json({ 
@@ -611,7 +611,7 @@ app.get('/api/courses/:id/lessons', async (req, res) => {
     });
     
     // Transform lessons data
-    const transformedLessons = lessons.map(lesson => ({
+    const transformedLessons = lessons.map((lesson: (typeof lessons)[0]) => ({
       ...lesson,
       attachments: lesson.attachments ? JSON.parse(lesson.attachments as string) : [],
       quiz_data: lesson.quiz_data ? JSON.parse(lesson.quiz_data as string) : null
@@ -1296,7 +1296,7 @@ app.get('/api/department-sections', async (req, res) => {
     
     // Count departments per section
     const sectionsWithCount = await Promise.all(
-      sections.map(async (section) => {
+      sections.map(async (section: (typeof sections)[0]) => {
         const count = await prisma.department.count({
           where: { section_id: section.id }
         });
@@ -1396,7 +1396,7 @@ app.get('/api/departments/:id', async (req, res) => {
         expertise: manager.research_interests ? 
           manager.research_interests.split(',').map((s: string) => s.trim()).filter(Boolean) : []
       } : null,
-      analysisServices: services.map(service => ({
+      analysisServices: services.map((service: (typeof services)[0]) => ({
         id: service.id,
         name: service.title,
         description: service.description,
@@ -1500,7 +1500,7 @@ app.get('/api/admin/departments', authenticateToken, requireAdmin, async (req, r
 
     // Get staff count for each department
     const departmentsWithStaff = await Promise.all(
-      departments.map(async (department) => {
+      departments.map(async (department: (typeof departments)[0]) => {
         const staffCount = await prisma.departmentStaff.count({
           where: { department_id: department.id }
         });
@@ -1684,7 +1684,7 @@ app.get('/api/admin/department-sections', authenticateToken, requireAdmin, async
 
     // Count departments per section
     const sectionsWithCount = await Promise.all(
-      sections.map(async (section) => {
+      sections.map(async (section: (typeof sections)[0]) => {
         const count = await prisma.department.count({
           where: { section_id: section.id }
         });
@@ -2155,7 +2155,7 @@ app.get('/api/admin/departments/:id/staff', authenticateToken, requireAdmin, asy
     });
 
     // Get staff details for each assignment
-    const staffIds = departmentStaff.map(ds => ds.staff_id);
+    const staffIds = departmentStaff.map((ds: (typeof departmentStaff)[0]) => ds.staff_id);
     const staff = await prisma.staff.findMany({
       where: {
         id: { in: staffIds }
@@ -2773,7 +2773,7 @@ app.get('/api/service-center-heads', async (req, res) => {
     });
 
     // Parse JSON fields
-    const centerHeadsWithParsedData = centerHeads.map(head => ({
+    const centerHeadsWithParsedData = centerHeads.map((head: (typeof centerHeads)[0]) => ({
       ...head,
       expertise: typeof head.expertise === 'string' ? JSON.parse(head.expertise) : head.expertise
     }));
@@ -3165,10 +3165,10 @@ app.get('/api/admin/courses', authenticateToken, requireAdmin, async (req, res) 
     });
     
     // Transform courses data
-    const transformedCourses = courses.map(course => ({
+    const transformedCourses = courses.map((course: (typeof courses)[0]) => ({
       ...course,
       lessons_count: course.lessons.length,
-      total_duration: course.lessons.reduce((sum, lesson) => sum + lesson.duration, 0)
+      total_duration: course.lessons.reduce((sum: number, lesson: (typeof course.lessons)[0]) => sum + lesson.duration, 0)
     }));
     
     console.log(`Found ${transformedCourses.length} courses`);
@@ -3494,7 +3494,7 @@ app.get('/api/admin/courses/:courseId/lessons', authenticateToken, requireAdmin,
     });
     
     // Transform lessons data
-    const transformedLessons = lessons.map(lesson => ({
+    const transformedLessons = lessons.map((lesson: (typeof lessons)[0]) => ({
       ...lesson,
       attachments: lesson.attachments ? JSON.parse(lesson.attachments as string) : [],
       quiz_data: lesson.quiz_data ? JSON.parse(lesson.quiz_data as string) : null

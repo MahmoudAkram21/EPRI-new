@@ -13,6 +13,9 @@ const app = express();
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3002;
 const prisma = new PrismaClient();
 
+// Type for Prisma JSON values
+type JsonValue = string | number | boolean | null | object | any[];
+
 const slugify = (value: string): string =>
   value
     .toLowerCase()
@@ -22,7 +25,7 @@ const slugify = (value: string): string =>
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-const parseJsonValue = <T>(value: Prisma.JsonValue | null | string | undefined, fallback: T): T => {
+const parseJsonValue = <T>(value: JsonValue | null | string | undefined, fallback: T): T => {
   if (value === null || value === undefined) {
     return fallback;
   }
@@ -60,7 +63,7 @@ const parseEquipmentItems = (input: any): Array<{
   name: string;
   description: string | null;
   image: string | null;
-  specifications: Prisma.JsonValue | null;
+  specifications: JsonValue | null;
 }> => {
   const items = parseJsonValue(input, [] as any[]);
   if (!Array.isArray(items)) return [];
@@ -85,7 +88,7 @@ const parseEquipmentItems = (input: any): Array<{
       name: string;
       description: string | null;
       image: string | null;
-      specifications: Prisma.JsonValue | null;
+      specifications: JsonValue | null;
     } => item !== null);
 };
 
@@ -95,7 +98,7 @@ const syncServiceCenterEquipments = async (
     name: string;
     description: string | null;
     image: string | null;
-    specifications: Prisma.JsonValue | null;
+    specifications: JsonValue | null;
   }>
 ) => {
   await prisma.serviceEquipment.deleteMany({
@@ -289,7 +292,7 @@ app.get('/api/department-sections', async (req, res) => {
     });
 
     // Count departments per section
-    const sectionsWithCounts = await Promise.all(sections.map(async (s) => {
+    const sectionsWithCounts = await Promise.all(sections.map(async (s: (typeof sections)[0]) => {
       const count = await prisma.department.count({ where: { section_id: s.id } });
       return {
         id: s.id,
@@ -383,7 +386,7 @@ app.get('/api/departments/:id', async (req, res) => {
         expertise: manager.research_interests ? 
           manager.research_interests.split(',').map((s: string) => s.trim()).filter(Boolean) : []
       } : null,
-      analysisServices: services.map(service => ({
+      analysisServices: services.map((service: (typeof services)[0]) => ({
         id: service.id,
         name: service.title,
         description: service.description,
@@ -580,7 +583,7 @@ app.get('/api/services', async (req, res) => {
     });
 
     // Parse features JSON
-    const servicesWithParsedFeatures = services.map(service => ({
+    const servicesWithParsedFeatures = services.map((service: (typeof services)[0]) => ({
       ...service,
       features: service.features ? JSON.parse(service.features as string) : [],
       centerHead: service.center_head,
@@ -643,7 +646,7 @@ app.get('/api/service-center-heads', async (req, res) => {
     });
 
     // Parse expertise JSON
-    const centerHeadsWithParsedExpertise = centerHeads.map(head => ({
+    const centerHeadsWithParsedExpertise = centerHeads.map((head: (typeof centerHeads)[0]) => ({
       ...head,
       expertise: head.expertise ? JSON.parse(head.expertise as string) : []
     }));
@@ -1429,7 +1432,7 @@ app.get('/api/admin/services', authenticateToken, requireAdmin, async (req, res)
     });
 
     // Parse features JSON
-    const servicesWithParsedFeatures = services.map(service => ({
+    const servicesWithParsedFeatures = services.map((service: (typeof services)[0]) => ({
       ...service,
       features: service.features ? JSON.parse(service.features as string) : []
     }));
@@ -1780,11 +1783,11 @@ app.post('/api/admin/service-centers', authenticateToken, requireAdmin, async (r
         contact_email: (contact_email ?? contactEmail) || null,
         lab_methodology: (lab_methodology ?? labMethodology) || null,
         future_prospective: (future_prospective ?? futureProspective) || null,
-        products: parseJsonValue(productsInput as Prisma.JsonValue | string | undefined, [] as any[]),
-        work_volume: parseJsonValue(workVolumeInput as Prisma.JsonValue | string | undefined, null as any),
-        company_activity: parseJsonValue(companyActivityInput as Prisma.JsonValue | string | undefined, null as any),
-        services: parseJsonValue(servicesInput as Prisma.JsonValue | string | undefined, [] as any[]),
-        metrics: parseJsonValue(metricsInput as Prisma.JsonValue | string | undefined, null as any),
+        products: parseJsonValue(productsInput as JsonValue | string | undefined, [] as any[]),
+        work_volume: parseJsonValue(workVolumeInput as JsonValue | string | undefined, null as any),
+        company_activity: parseJsonValue(companyActivityInput as JsonValue | string | undefined, null as any),
+        services: parseJsonValue(servicesInput as JsonValue | string | undefined, [] as any[]),
+        metrics: parseJsonValue(metricsInput as JsonValue | string | undefined, null as any),
         is_featured: parseBoolean(is_featured ?? isFeatured, false),
         is_published: parseBoolean(is_published ?? isPublished, true),
         order_index: parseNumber(order_index ?? orderIndex, 0)
@@ -1900,27 +1903,27 @@ app.put('/api/admin/service-centers/:id', authenticateToken, requireAdmin, async
 
     const productsInput = req.body.products ?? req.body.productList ?? req.body.product_list;
     if (productsInput !== undefined) {
-      updateData.products = parseJsonValue(productsInput as Prisma.JsonValue | string | undefined, [] as any[]);
+      updateData.products = parseJsonValue(productsInput as JsonValue | string | undefined, [] as any[]);
     }
 
     const workVolumeInput = req.body.work_volume ?? req.body.workVolume;
     if (workVolumeInput !== undefined) {
-      updateData.work_volume = parseJsonValue(workVolumeInput as Prisma.JsonValue | string | undefined, null as any);
+      updateData.work_volume = parseJsonValue(workVolumeInput as JsonValue | string | undefined, null as any);
     }
 
     const companyActivityInput = req.body.company_activity ?? req.body.companyActivity;
     if (companyActivityInput !== undefined) {
-      updateData.company_activity = parseJsonValue(companyActivityInput as Prisma.JsonValue | string | undefined, null as any);
+      updateData.company_activity = parseJsonValue(companyActivityInput as JsonValue | string | undefined, null as any);
     }
 
     const servicesInput = req.body.services ?? req.body.serviceTabs ?? req.body.service_tabs;
     if (servicesInput !== undefined) {
-      updateData.services = parseJsonValue(servicesInput as Prisma.JsonValue | string | undefined, [] as any[]);
+      updateData.services = parseJsonValue(servicesInput as JsonValue | string | undefined, [] as any[]);
     }
 
     const metricsInput = req.body.metrics ?? req.body.analytics ?? req.body.kpis;
     if (metricsInput !== undefined) {
-      updateData.metrics = parseJsonValue(metricsInput as Prisma.JsonValue | string | undefined, null as any);
+      updateData.metrics = parseJsonValue(metricsInput as JsonValue | string | undefined, null as any);
     }
 
     if (is_featured !== undefined || isFeatured !== undefined) {
@@ -2013,7 +2016,7 @@ app.get('/api/admin/department-sections', authenticateToken, requireAdmin, async
       }
     });
 
-    const sectionsWithCounts = sections.map(section => ({
+    const sectionsWithCounts = sections.map((section: (typeof sections)[0]) => ({
       id: section.id,
       name: section.name,
       slug: section.slug,
