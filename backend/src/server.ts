@@ -155,6 +155,8 @@ const parseNumber = (value: any, fallback: number): number => {
 // Middleware - CORS configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  'http://134.209.251.89:3000',
+  'https://134.209.251.89:3000',
   'http://epri.developteam.site',
   'https://epri.developteam.site',
   'http://epri.developteam.site:3000',
