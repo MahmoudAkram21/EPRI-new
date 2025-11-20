@@ -152,29 +152,52 @@ const parseNumber = (value: any, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-// Middleware
+// Middleware - CORS configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'http://epri.developteam.site',
   'https://epri.developteam.site',
-  'https://epri.developteam.site:5000',
   'http://epri.developteam.site:3000',
+  'https://epri.developteam.site:3000',
+  'http://epri.developteam.site:5000',
+  'https://epri.developteam.site:5000',
   'http://localhost:3000',
-  'http://localhost:3002'
+  'http://localhost:3002',
+  'https://localhost:3000'
 ].filter(Boolean) as string[];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, Postman, or curl requests)
     if (!origin) return callback(null, true);
     
+    // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // For deployment, allow same domain with different protocol/port
+      try {
+        const originUrl = new URL(origin);
+        const isSameDomain = originUrl.hostname === 'epri.developteam.site' || 
+                            originUrl.hostname === 'localhost' ||
+                            originUrl.hostname === '127.0.0.1';
+        
+        if (isSameDomain) {
+          callback(null, true);
+        } else {
+          console.warn(`CORS blocked origin: ${origin}`);
+          callback(new Error('Not allowed by CORS'));
+        }
+      } catch (error) {
+        // Invalid URL format
+        console.warn(`CORS blocked invalid origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
