@@ -156,8 +156,11 @@ const parseNumber = (value: any, fallback: number): number => {
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'http://epri.developteam.site',
+  'https://epri.developteam.site',
+  'https://epri.developteam.site:5000',
   'http://epri.developteam.site:3000',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'http://localhost:3002'
 ].filter(Boolean) as string[];
 
 app.use(cors({
