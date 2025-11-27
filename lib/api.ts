@@ -1,5 +1,5 @@
 // API client for communicating with the backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-erpi.developteam.site:5001/api';
 // const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
 
 class ApiClient {
