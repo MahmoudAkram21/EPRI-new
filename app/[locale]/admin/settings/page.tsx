@@ -114,8 +114,6 @@ export default function AdminSettings() {
   const [showSliderForm, setShowSliderForm] = useState(false);
   const [pageContents, setPageContents] = useState<Record<string, Record<string, any>>>({});
   const [pageContentLoading, setPageContentLoading] = useState<Record<string, boolean>>({});
-  const [pageContents, setPageContents] = useState<Record<string, Record<string, any>>>({});
-  const [pageContentLoading, setPageContentLoading] = useState<Record<string, boolean>>({});
   
   const [settings, setSettings] = useState<SystemSettings>({
     siteName: 'Egyptian Petroleum Research Institute',

@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FileText, Search, Filter, ExternalLink, Calendar, User, BookOpen, TrendingUp } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 interface Publication {
   id: string

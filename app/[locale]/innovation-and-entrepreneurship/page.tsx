@@ -1,3 +1,5 @@
+"use client"
+
 import { PageContainer } from "@/components/page-container"
 import { Section } from "@/components/section"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,9 +23,6 @@ import {
   Handshake
 } from "lucide-react"
 import { AnimatedSection } from "@/components/animated-section"
-
-"use client"
-
 import { useTranslations } from "next-intl"
 
 export default function InnovationAndEntrepreneurshipPage() {
