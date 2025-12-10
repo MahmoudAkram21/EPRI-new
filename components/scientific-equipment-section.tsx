@@ -1,19 +1,50 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import Link from "next/link"
+import { useLocale } from "next-intl"
 import { Microscope, ChevronLeft, ChevronRight, Info } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { apiClient } from "@/lib/api"
 import type { ServiceCenter, ServiceCenterEquipment } from "@/types/service-center"
+import useEmblaCarousel from "embla-carousel-react"
+import Autoplay from "embla-carousel-autoplay"
+
+type TranslationObject = { en: string; ar: string } | string
+
+// Helper function to extract translation value
+function getTranslation(value: TranslationObject | undefined, locale: string): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    return value[locale as 'en' | 'ar'] || value.en || ''
+  }
+  return ''
+}
 
 export function ScientificEquipmentSection() {
+  const locale = useLocale()
   const [centers, setCenters] = useState<ServiceCenter[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const itemsPerView = 3
+  
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    {
+      loop: true,
+      align: "start",
+      slidesToScroll: 1,
+    },
+    [Autoplay({ delay: 4000, stopOnInteraction: false })]
+  )
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev()
+  }, [emblaApi])
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext()
+  }, [emblaApi])
 
   useEffect(() => {
     const fetchCenters = async () => {
@@ -24,7 +55,16 @@ export function ScientificEquipmentSection() {
           products: [],
           services: [],
           ...center,
-          equipments: Array.isArray(center.equipments) ? center.equipments : [],
+          name: getTranslation(center.name, locale),
+          headline: center.headline ? getTranslation(center.headline, locale) : undefined,
+          description: center.description ? getTranslation(center.description, locale) : undefined,
+          equipments: Array.isArray(center.equipments) 
+            ? center.equipments.map((eq: any) => ({
+                ...eq,
+                name: getTranslation(eq.name, locale),
+                description: eq.description ? getTranslation(eq.description, locale) : undefined,
+              }))
+            : [],
           products: Array.isArray(center.products) ? center.products : [],
           services: Array.isArray(center.services) ? center.services : []
         }))
@@ -59,23 +99,6 @@ export function ScientificEquipmentSection() {
     return equipment
   }, [centers])
 
-  const totalSlides = Math.ceil(allEquipment.length / itemsPerView)
-  const currentEquipment = allEquipment.slice(
-    currentIndex * itemsPerView,
-    currentIndex * itemsPerView + itemsPerView
-  )
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % totalSlides)
-  }
-
-  const goToPrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides)
-  }
-
-  const goToSlide = (index: number) => {
-    setCurrentIndex(index)
-  }
 
   if (loading) {
     return (
@@ -109,39 +132,24 @@ export function ScientificEquipmentSection() {
           </div>
         </div>
 
-        {/* Navigation Arrows */}
-        {allEquipment.length > itemsPerView && (
-          <>
-            <button
-              onClick={goToPrev}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl text-primary flex items-center justify-center transition-all hover:scale-110 border border-slate-200 dark:border-slate-700"
-              aria-label="Previous equipment"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <button
-              onClick={goToNext}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl text-primary flex items-center justify-center transition-all hover:scale-110 border border-slate-200 dark:border-slate-700"
-              aria-label="Next equipment"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-          </>
-        )}
-
-        {/* Equipment Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {currentEquipment.map((equipment) => (
-            <Link 
-              key={equipment.id || equipment.name} 
-              href={`/service-centers/${equipment.centerSlug}#equipment`}
-            >
-              <Card className="group h-full hover:shadow-xl transition-all duration-300 overflow-hidden">
+        {/* Equipment Grid Container with Navigation */}
+        <div className="relative">
+          <div ref={emblaRef} className="overflow-hidden">
+            <div className="flex gap-6 py-2">
+              {allEquipment.map((equipment) => (
+                <div
+                  key={equipment.id || equipment.name}
+                  className="flex-[0_0_100%] min-w-0 md:flex-[0_0_calc(33.333%-1rem)] pl-4"
+                >
+                  <Link 
+                    href={`/service-centers/${equipment.centerSlug}#equipment`}
+                  >
+                    <Card className="group h-full hover:shadow-xl transition-all duration-300 overflow-hidden">
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
                   <img
                     src={equipment.image || "/placeholder.svg"}
-                    alt={equipment.name}
+                    alt={typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -157,13 +165,15 @@ export function ScientificEquipmentSection() {
 
                     {/* Equipment Name */}
                     <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors line-clamp-2">
-                      {equipment.name}
+                      {typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
                     </h3>
 
                     {/* Description */}
                     {(equipment.description || equipment.details) && (
                       <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-3">
-                        {equipment.description || equipment.details}
+                        {typeof (equipment.description || equipment.details) === 'string' 
+                          ? (equipment.description || equipment.details)
+                          : getTranslation(equipment.description || equipment.details, locale)}
                       </p>
                     )}
 
@@ -202,31 +212,32 @@ export function ScientificEquipmentSection() {
                     </Button>
                   </div>
                 </CardContent>
-              </Card>
-            </Link>
-          ))}
+                    </Card>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Navigation Arrows */}
+          <button
+            onClick={scrollPrev}
+            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 h-10 w-10 items-center justify-center rounded-full bg-background border shadow-md hover:bg-primary hover:text-white cursor-pointer transition-colors"
+            aria-label="Previous equipment"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            onClick={scrollNext}
+            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 h-10 w-10 items-center justify-center rounded-full bg-background border shadow-md hover:bg-primary hover:text-white cursor-pointer transition-colors"
+            aria-label="Next equipment"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
         </div>
 
-        {/* Pagination Dots */}
-        {totalSlides > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-8">
-            {Array.from({ length: totalSlides }).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`h-2 rounded-full transition-all ${
-                  index === currentIndex
-                    ? 'bg-primary w-8'
-                    : 'bg-slate-300 dark:bg-slate-600 w-2 hover:bg-slate-400 dark:hover:bg-slate-500'
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
-
         {/* View All Link */}
-        {allEquipment.length > itemsPerView && (
+        {allEquipment.length > 3 && (
           <div className="text-center mt-8">
             <Link href="/equipments">
               <Button variant="outline" className="bg-transparent">

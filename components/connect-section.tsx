@@ -1,8 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { apiClient } from "@/lib/api"
+import { useLocale } from "next-intl"
+
+// Helper function to extract localized value
+function getLocalizedValue(value: any, locale: string): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    return value[locale as 'en' | 'ar'] || value.en || value.ar || ''
+  }
+  return ''
+}
 
 interface InstagramPost {
   id: string
@@ -80,17 +92,49 @@ const youtubeVideos: YouTubeVideo[] = [
 ]
 
 export function ConnectSection() {
+  const locale = useLocale()
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
+  const [homeContent, setHomeContent] = useState<any>(null)
+  const [connectData, setConnectData] = useState<any>({
+    instagramPosts,
+    tweets,
+    youtubeVideos
+  })
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await apiClient.get('/home-content/connect').catch(() => ({ content: null }))
+        const content = response.content
+        
+        if (content) {
+          setHomeContent(content)
+          if (content.content) {
+            setConnectData({
+              instagramPosts: content.content.instagramPosts || instagramPosts,
+              tweets: content.content.tweets || tweets,
+              youtubeVideos: content.content.youtubeVideos || youtubeVideos
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching connect section:', error)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const nextVideo = () => {
-    setCurrentVideoIndex((prev) => (prev + 1) % youtubeVideos.length)
+    setCurrentVideoIndex((prev) => (prev + 1) % connectData.youtubeVideos.length)
   }
 
   const prevVideo = () => {
-    setCurrentVideoIndex((prev) => (prev - 1 + youtubeVideos.length) % youtubeVideos.length)
+    setCurrentVideoIndex((prev) => (prev - 1 + connectData.youtubeVideos.length) % connectData.youtubeVideos.length)
   }
 
-  const currentVideo = youtubeVideos[currentVideoIndex]
+  const currentVideo = connectData.youtubeVideos[currentVideoIndex]
+  const sectionTitle = getLocalizedValue(homeContent?.title, locale) || "CONNECT"
 
   return (
     <div className="w-full bg-white dark:bg-slate-900 py-12">
@@ -98,7 +142,7 @@ export function ConnectSection() {
         {/* Section Header */}
         <div className="mb-8">
           <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            CONNECT
+            {sectionTitle}
           </h2>
           <div className="w-24 h-1 bg-slate-900 dark:bg-slate-100"></div>
         </div>
@@ -110,7 +154,7 @@ export function ConnectSection() {
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">INSTAGRAM</h3>
             <div className="h-[500px] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-2">
-                {instagramPosts.map((post) => (
+                {connectData.instagramPosts.map((post: any) => (
                   <div
                     key={post.id}
                     className="relative aspect-square overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 group cursor-pointer"
@@ -137,7 +181,7 @@ export function ConnectSection() {
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">X</h3>
             <div className="h-[500px] overflow-y-auto pr-2 space-y-0 border border-slate-200 dark:border-slate-700 rounded-lg">
-              {tweets.map((tweet, index) => (
+              {connectData.tweets.map((tweet: any, index: number) => (
                 <div
                   key={tweet.id}
                   className={`p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${

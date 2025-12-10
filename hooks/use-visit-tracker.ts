@@ -9,8 +9,7 @@ interface UseVisitTrackerOptions {
 }
 
 export function useVisitTracker(options: UseVisitTrackerOptions = {}) {
-  // const { enabled = true, apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002' } = options 
-  const { enabled = true, apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://epri.developteam.site:5000/api' } = options 
+  const { enabled = true, apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api' } = options 
   const pathname = usePathname()
   const sessionIdRef = useRef<string>('')
   const lastTrackedPathRef = useRef<string>('')
@@ -36,7 +35,7 @@ export function useVisitTracker(options: UseVisitTrackerOptions = {}) {
     
     const trackVisit = async () => {
       try {
-        const response = await fetch(`${apiUrl}/api/visitor-stats/track`, {
+        const response = await fetch(`${apiUrl}/visitor-stats/track`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

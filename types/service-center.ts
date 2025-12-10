@@ -27,6 +27,18 @@ export interface ServiceCenterService {
   summary?: string
 }
 
+export interface ServiceCenterStaffMember {
+  id: string
+  name: string
+  title?: string
+  academic_position?: string
+  current_admin_position?: string
+  picture?: string
+  bio?: string
+  email?: string
+  phone?: string
+}
+
 export interface ServiceCenterWorkVolume {
   totalIncomeRate?: number
   currency?: string
@@ -61,7 +73,9 @@ export interface ServiceCenter {
   company_activity?: ServiceCenterActivity | null
   future_prospective?: string | null
   services: ServiceCenterService[]
+  staff?: ServiceCenterStaffMember[]
   metrics?: ServiceCenterMetrics | null
+  gallery?: string[] | null
   is_featured: boolean
   is_published: boolean
   order_index: number

@@ -1,45 +1,75 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useRef, useState, useEffect } from "react"
 import { AnimatedCounter } from "@/components/animated-counter"
 import { useInView } from "framer-motion"
+import useEmblaCarousel from "embla-carousel-react"
+import Autoplay from "embla-carousel-autoplay"
+import { apiClient } from "@/lib/api"
+import { useLocale } from "next-intl"
 
 interface Achievement {
   title: string
   value: number
 }
 
-const achievements: Achievement[] = [
+// Helper function to extract localized value
+function getLocalizedValue(value: any, locale: string): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    return value[locale as 'en' | 'ar'] || value.en || value.ar || ''
+  }
+  return ''
+}
+
+// Default achievements
+const defaultAchievements: Achievement[] = [
   { title: "MSc Programs", value: 126 },
   { title: "PhD Programs", value: 40 },
   { title: "Higher Specialization Programs In Medicine And Dentistry", value: 22 },
   { title: "Higher Diploma", value: 8 },
-  { title: "Certificate Programs", value: 15 }, // Added 5th item
+  { title: "Certificate Programs", value: 15 },
 ]
 
 export function AchievementsSlider() {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const itemsPerPage = 5
-  const totalPages = Math.ceil(achievements.length / itemsPerPage)
+  const locale = useLocale()
   const containerRef = useRef<HTMLDivElement>(null)
   const isInView = useInView(containerRef, { once: true, margin: "-100px" })
+  const [achievements, setAchievements] = useState<Achievement[]>(defaultAchievements)
+  const [loading, setLoading] = useState(true)
 
-  const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % totalPages)
-  }, [totalPages])
-
-  // Auto-play slider
   useEffect(() => {
-    const interval = setInterval(() => {
-      goToNext()
-    }, 3000) // Change slide every 3 seconds
+    const fetchAchievements = async () => {
+      try {
+        const response = await apiClient.get('/home-content/achievements').catch(() => ({ content: null }))
+        const content = response.content
+        
+        if (content?.content?.achievements && Array.isArray(content.content.achievements)) {
+          const transformed = content.content.achievements.map((ach: any) => ({
+            title: getLocalizedValue(ach.title, locale),
+            value: ach.value || 0
+          }))
+          setAchievements(transformed)
+        }
+      } catch (error) {
+        console.error('Error fetching achievements:', error)
+        // Keep default achievements
+      } finally {
+        setLoading(false)
+      }
+    }
 
-    return () => clearInterval(interval)
-  }, [goToNext])
+    fetchAchievements()
+  }, [locale])
 
-  const currentAchievements = achievements.slice(
-    currentIndex * itemsPerPage,
-    currentIndex * itemsPerPage + itemsPerPage
+  const [emblaRef] = useEmblaCarousel(
+    {
+      loop: true,
+      align: "start",
+      slidesToScroll: 1,
+    },
+    [Autoplay({ delay: 5000, stopOnInteraction: false })] as any,
   )
 
   return (
@@ -56,14 +86,20 @@ export function AchievementsSlider() {
 
       {/* Content */}
       <div className="relative z-10 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-8">
-          {currentAchievements.map((achievement, index) => (
-            <AchievementItem 
-              key={`${achievement.title}-${currentIndex}`} 
-              achievement={achievement}
-              isInView={isInView}
-            />
-          ))}
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex gap-6 lg:gap-8">
+            {achievements.map((achievement, index) => (
+              <div 
+                key={achievement.title}
+                className="flex-[0_0_100%] sm:flex-[0_0_calc(50%-0.75rem)] lg:flex-[0_0_calc(33.333%-1rem)] min-w-0"
+              >
+                <AchievementItem 
+                  achievement={achievement}
+                  isInView={isInView}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

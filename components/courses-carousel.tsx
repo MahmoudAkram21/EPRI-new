@@ -2,9 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import { useLocale } from "next-intl"
 import { ChevronLeft, ChevronRight, BookOpen, Clock, Calendar, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { apiClient } from "@/lib/api"
+import useEmblaCarousel from "embla-carousel-react"
+import Autoplay from "embla-carousel-autoplay"
+
+type TranslationObject = { en: string; ar: string } | string
 
 interface Course {
   id: string
@@ -23,18 +28,43 @@ interface Course {
   lessons?: any[]
 }
 
+// Helper function to extract translation value
+function getTranslation(value: TranslationObject | undefined, locale: string): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    return value[locale as 'en' | 'ar'] || value.en || ''
+  }
+  return ''
+}
+
 export function CoursesCarousel() {
+  const locale = useLocale()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const itemsPerView = 3
-  const totalSlides = Math.ceil(courses.length / itemsPerView)
+
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    {
+      loop: true,
+      align: "start",
+      slidesToScroll: 1,
+    },
+    [Autoplay({ delay: 4000, stopOnInteraction: false })]
+  )
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev()
+  }, [emblaApi])
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext()
+  }, [emblaApi])
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const response = await apiClient.getCourses({ is_published: true }) as any
-        let coursesData: Course[] = []
+        let coursesData: any[] = []
         
         // Handle different response formats
         if (response.data && Array.isArray(response.data)) {
@@ -45,10 +75,16 @@ export function CoursesCarousel() {
           coursesData = response
         }
         
-        // Filter published courses and limit to 9
-        const publishedCourses = coursesData
-          .filter((course: Course) => course.is_published)
+        // Transform translation objects to strings and filter published courses
+        const publishedCourses: Course[] = coursesData
+          .filter((course: any) => course.is_published)
           .slice(0, 9)
+          .map((course: any) => ({
+            ...course,
+            title: getTranslation(course.title, locale),
+            subtitle: course.subtitle ? getTranslation(course.subtitle, locale) : undefined,
+            description: course.description ? getTranslation(course.description, locale) : undefined,
+          }))
         
         setCourses(publishedCourses)
       } catch (error) {
@@ -60,24 +96,7 @@ export function CoursesCarousel() {
     }
 
     fetchCourses()
-  }, [])
-
-  const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % totalSlides)
-  }, [totalSlides])
-
-  const goToPrev = useCallback(() => {
-    setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides)
-  }, [totalSlides])
-
-  const goToSlide = useCallback((index: number) => {
-    setCurrentIndex(index)
-  }, [])
-
-  const currentCourses = courses.slice(
-    currentIndex * itemsPerView,
-    currentIndex * itemsPerView + itemsPerView
-  )
+  }, [locale])
 
   if (loading) {
     return (
@@ -93,33 +112,17 @@ export function CoursesCarousel() {
 
   return (
     <div className="relative">
-      {/* Navigation Arrows */}
-      {courses.length > itemsPerView && (
-        <>
-          <button
-            onClick={goToPrev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl text-primary flex items-center justify-center transition-all hover:scale-110 border border-slate-200 dark:border-slate-700"
-            aria-label="Previous courses"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-          <button
-            onClick={goToNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl text-primary flex items-center justify-center transition-all hover:scale-110 border border-slate-200 dark:border-slate-700"
-            aria-label="Next courses"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </button>
-        </>
-      )}
-
-      {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {currentCourses.map((course) => (
-          <Link key={course.id} href={`/courses/${course.id}`}>
+      <div ref={emblaRef} className="overflow-hidden">
+        <div className="flex gap-6 py-2">
+          {courses.map((course) => (
+            <div
+              key={course.id}
+              className="flex-[0_0_100%] min-w-0 md:flex-[0_0_calc(33.333%-1rem)] pl-4"
+            >
+          <Link href={`/courses/${course.id}`}>
             <div className="group bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-              {/* Image */}
-              <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
+              {/* Image - Larger at top */}
+              <div className="relative h-64 overflow-hidden bg-slate-100 dark:bg-slate-800">
                 <img
                   src={course.image || "/placeholder.svg"}
                   alt={course.title}
@@ -129,46 +132,46 @@ export function CoursesCarousel() {
 
               {/* Content */}
               <div className="p-6 flex-1 flex flex-col">
-                {/* Title */}
+                {/* Title - Bold dark blue */}
                 <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3 group-hover:text-primary transition-colors">
                   {course.title}
                 </h3>
 
                 {/* Description */}
                 {course.description && (
-                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-3 flex-1">
+                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 line-clamp-3 flex-1 leading-relaxed">
                     {course.description}
                   </p>
                 )}
 
-                {/* Details */}
-                <div className="space-y-2 mb-6">
+                {/* Details with icons */}
+                <div className="space-y-3 mb-6">
                   {(course.lessons_count || (course.lessons && course.lessons.length > 0)) && (
                     <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                      <BookOpen className="h-4 w-4 text-primary" />
-                      <span className="font-semibold">
+                      <BookOpen className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span className="font-semibold uppercase">
                         STUDY {course.lessons_count || (course.lessons ? course.lessons.length : 0)} SUBJECTS
                       </span>
                     </div>
                   )}
                   {course.duration_weeks && (
                     <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                      <Clock className="h-4 w-4 text-primary" />
-                      <span className="font-semibold">
+                      <Clock className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span className="font-semibold uppercase">
                         {course.duration_weeks} {course.duration_weeks === 1 ? 'MONTH' : 'MONTHS'} PART TIME
                       </span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">6 INTAKES A YEAR</span>
+                    <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="font-semibold uppercase">6 INTAKES A YEAR</span>
                   </div>
                 </div>
 
-                {/* Button */}
+                {/* Button - Light green with white arrow */}
                 <Button 
-                  className="w-full bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-slate-900 dark:text-slate-100 border-0 transition-all font-medium"
-                  variant="outline"
+                  className="w-full bg-green-500 hover:bg-green-600 text-white border-0 transition-all font-medium shadow-sm hover:shadow-md"
+                  variant="default"
                 >
                   View course details
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -176,25 +179,29 @@ export function CoursesCarousel() {
               </div>
             </div>
           </Link>
-        ))}
-      </div>
-
-      {/* Pagination Dots */}
-      {totalSlides > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8">
-          {Array.from({ length: totalSlides }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`h-2 rounded-full transition-all ${
-                index === currentIndex
-                  ? 'bg-primary w-8'
-                  : 'bg-slate-300 dark:bg-slate-600 w-2 hover:bg-slate-400 dark:hover:bg-slate-500'
-              }`}
-              aria-label={`Go to slide ${index + 1}`}
-            />
+            </div>
           ))}
         </div>
+      </div>
+
+      {/* Navigation Arrows */}
+      {courses.length > 3 && (
+        <>
+          <button
+            onClick={scrollPrev}
+            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 h-10 w-10 items-center justify-center rounded-full bg-background border shadow-md hover:bg-primary hover:text-white cursor-pointer transition-colors"
+            aria-label="Previous courses"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            onClick={scrollNext}
+            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 h-10 w-10 items-center justify-center rounded-full bg-background border shadow-md hover:bg-primary hover:text-white cursor-pointer transition-colors"
+            aria-label="Next courses"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </>
       )}
     </div>
   )

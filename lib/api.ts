@@ -1,6 +1,7 @@
 // API client for communicating with the backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-erpi.developteam.site:5001/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-erpi.developteam.site:5001/api';
 // const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 class ApiClient {
   private baseURL: string;
@@ -15,9 +16,15 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
+    // Get current locale from localStorage or default to 'en'
+    const locale = typeof window !== 'undefined' 
+      ? (localStorage.getItem('locale') || 'en')
+      : 'en';
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        'Accept-Language': locale,
         ...options.headers,
       },
       ...options,
@@ -64,6 +71,29 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
     }
+  }
+
+  // Generic HTTP methods
+  async get<T = any>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET' });
+  }
+
+  async post<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async put<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete<T = any>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE' });
   }
 
   // Auth endpoints
@@ -267,6 +297,18 @@ class ApiClient {
     return this.request<{ message: string, user: any }>(`/admin/users/${id}/verify`, {
       method: 'PUT',
       body: JSON.stringify({ is_verified }),
+    });
+  }
+
+  async removeUserPlan(id: string): Promise<{ message: string, user: any }> {
+    return this.request<{ message: string, user: any }>(`/admin/users/${id}/plan`, {
+      method: 'DELETE',
+    });
+  }
+
+  async stopUserTrial(id: string): Promise<{ message: string, user: any }> {
+    return this.request<{ message: string, user: any }>(`/admin/users/${id}/trial`, {
+      method: 'DELETE',
     });
   }
 
@@ -770,9 +812,135 @@ class ApiClient {
     return this.request<{ centerHeads: any[], total: number }>('/service-center-heads');
   }
 
+  // Products API (Public)
+  async getProducts(params?: {
+    service_center_id?: string;
+    category?: string;
+    featured?: boolean;
+    published?: boolean;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ products: any[], total: number, limit?: number, offset?: number }> {
+    const queryParams = new URLSearchParams();
+    if (params?.service_center_id) queryParams.append('service_center_id', params.service_center_id);
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.featured !== undefined) queryParams.append('featured', String(params.featured));
+    if (params?.published !== undefined) queryParams.append('published', String(params.published));
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+    if (params?.offset) queryParams.append('offset', String(params.offset));
+    
+    const query = queryParams.toString();
+    return this.request<{ products: any[], total: number, limit?: number, offset?: number }>(
+      `/products${query ? `?${query}` : ''}`
+    );
+  }
+
+  async getProduct(id: string): Promise<{ product: any }> {
+    return this.request<{ product: any }>(`/products/${id}`);
+  }
+
+  async getProductBySlug(slug: string): Promise<{ product: any }> {
+    return this.request<{ product: any }>(`/products/slug/${slug}`);
+  }
+
+  // Admin Products API
+  async getAdminProducts(params?: {
+    service_center_id?: string;
+    category?: string;
+    featured?: boolean;
+    published?: boolean;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ products: any[], total: number, limit?: number, offset?: number }> {
+    const queryParams = new URLSearchParams();
+    if (params?.service_center_id) queryParams.append('service_center_id', params.service_center_id);
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.featured !== undefined) queryParams.append('featured', String(params.featured));
+    if (params?.published !== undefined) queryParams.append('published', String(params.published));
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+    if (params?.offset) queryParams.append('offset', String(params.offset));
+    
+    const query = queryParams.toString();
+    return this.request<{ products: any[], total: number, limit?: number, offset?: number }>(
+      `/admin/products${query ? `?${query}` : ''}`
+    );
+  }
+
+  async getAdminProduct(id: string): Promise<{ product: any }> {
+    return this.request<{ product: any }>(`/admin/products/${id}`);
+  }
+
+  async createAdminProduct(productData: {
+    name: string | { en: string; ar: string };
+    description?: string | { en: string; ar: string };
+    short_description?: string | { en: string; ar: string };
+    image?: string;
+    images?: string[];
+    price?: number;
+    original_price?: number;
+    category?: string;
+    tags?: string[];
+    specifications?: any;
+    features?: string[];
+    sizes?: string[];
+    stock_quantity?: number;
+    sku?: string;
+    is_featured?: boolean;
+    is_published?: boolean;
+    is_available?: boolean;
+    order_index?: number;
+    service_center_id?: string;
+  }): Promise<{ message: string, product: any }> {
+    return this.request<{ message: string, product: any }>('/admin/products', {
+      method: 'POST',
+      body: JSON.stringify(productData),
+    });
+  }
+
+  async updateAdminProduct(id: string, productData: {
+    name?: string | { en: string; ar: string };
+    description?: string | { en: string; ar: string };
+    short_description?: string | { en: string; ar: string };
+    image?: string;
+    images?: string[];
+    price?: number;
+    original_price?: number;
+    category?: string;
+    tags?: string[];
+    specifications?: any;
+    features?: string[];
+    sizes?: string[];
+    stock_quantity?: number;
+    sku?: string;
+    is_featured?: boolean;
+    is_published?: boolean;
+    is_available?: boolean;
+    order_index?: number;
+    service_center_id?: string;
+  }): Promise<{ message: string, product: any }> {
+    return this.request<{ message: string, product: any }>(`/admin/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(productData),
+    });
+  }
+
+  async deleteAdminProduct(id: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/admin/products/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Public Services API
   async getServices(): Promise<{ services: any[], total: number }> {
     return this.request<{ services: any[], total: number }>('/services');
+  }
+
+  async getISOCertificates(): Promise<{ certificates: any[], total: number }> {
+    return this.request<{ certificates: any[], total: number }>('/iso-certificates');
   }
 
   async getService(id: string): Promise<{ service: any }> {
@@ -972,6 +1140,53 @@ class ApiClient {
     });
   }
 
+  // Admin Course Orders
+  async getAdminCourseOrders(params?: {
+    payment_status?: string;
+    course_id?: string;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<{ orders: any[], total: number }> {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          queryParams.append(key, String(value));
+        }
+      });
+    }
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/admin/course-orders?${queryString}` : '/admin/course-orders';
+    
+    return this.request<{ orders: any[], total: number }>(endpoint);
+  }
+
+  async updateAdminCourseOrder(id: string, orderData: {
+    payment_status?: string;
+    verified_at?: string | null;
+    notes?: string;
+  }): Promise<{ message: string, order: any }> {
+    return this.request<{ message: string, order: any }>(`/admin/course-orders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(orderData),
+    });
+  }
+
+  // Create multi-course order
+  async createMultiCourseOrder(orderData: {
+    courses: Array<{ course_id: string; price: number; currency: string }>;
+    total_amount: number;
+    currency: string;
+    country?: string;
+    payment_method: string;
+  }): Promise<{ message: string; order: any }> {
+    return this.request<{ message: string; order: any }>('/course-orders', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  }
+
   // Visitor Stats Methods
   async trackVisit(sessionId: string, pagePath: string = '/'): Promise<{ success: boolean; message: string }> {
     return this.request<{ success: boolean; message: string }>('/visitor-stats/track', {
@@ -996,6 +1211,155 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  // Hero Slider API Methods
+  async getHeroSliders(): Promise<{ sliders: any[] }> {
+    return this.request<{ sliders: any[] }>('/hero-sliders');
+  }
+
+  async getAdminHeroSliders(): Promise<{ sliders: any[] }> {
+    return this.request<{ sliders: any[] }>('/admin/hero-sliders');
+  }
+
+  async getAdminHeroSlider(id: string): Promise<{ slider: any }> {
+    return this.request<{ slider: any }>(`/admin/hero-sliders/${id}`);
+  }
+
+  async createAdminHeroSlider(sliderData: {
+    media_type?: string;
+    image?: string;
+    video?: string;
+    title: { en: string; ar: string };
+    subtitle: { en: string; ar: string };
+    description: { en: string; ar: string };
+    cta: { en: string; ar: string };
+    cta_link: string;
+    badge: { en: string; ar: string };
+    icon?: string;
+    stats?: Array<{ value: string; label: { en: string; ar: string } }>;
+    is_active?: boolean;
+    order_index?: number;
+  }): Promise<{ message: string; slider: any }> {
+    return this.request<{ message: string; slider: any }>('/admin/hero-sliders', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...sliderData,
+        title: JSON.stringify(sliderData.title),
+        subtitle: JSON.stringify(sliderData.subtitle),
+        description: JSON.stringify(sliderData.description),
+        cta: JSON.stringify(sliderData.cta),
+        badge: JSON.stringify(sliderData.badge),
+        stats: sliderData.stats ? JSON.stringify(sliderData.stats) : null,
+      }),
+    });
+  }
+
+  async updateAdminHeroSlider(id: string, sliderData: {
+    media_type?: string;
+    image?: string;
+    video?: string;
+    title?: { en: string; ar: string };
+    subtitle?: { en: string; ar: string };
+    description?: { en: string; ar: string };
+    cta?: { en: string; ar: string };
+    cta_link?: string;
+    badge?: { en: string; ar: string };
+    icon?: string;
+    stats?: Array<{ value: string; label: { en: string; ar: string } }>;
+    is_active?: boolean;
+    order_index?: number;
+  }): Promise<{ message: string; slider: any }> {
+    const payload: any = { ...sliderData };
+    if (sliderData.title) payload.title = JSON.stringify(sliderData.title);
+    if (sliderData.subtitle) payload.subtitle = JSON.stringify(sliderData.subtitle);
+    if (sliderData.description) payload.description = JSON.stringify(sliderData.description);
+    if (sliderData.cta) payload.cta = JSON.stringify(sliderData.cta);
+    if (sliderData.badge) payload.badge = JSON.stringify(sliderData.badge);
+    if (sliderData.stats) payload.stats = JSON.stringify(sliderData.stats);
+
+    return this.request<{ message: string; slider: any }>(`/admin/hero-sliders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteAdminHeroSlider(id: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/admin/hero-sliders/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Page Content API Methods (Generic)
+  async getPageContent(pageKey: string, sectionKey?: string): Promise<{ contents: any[] }> {
+    const query = sectionKey ? `?sectionKey=${encodeURIComponent(sectionKey)}` : '';
+    return this.request<{ contents: any[] }>(`/page-content/${pageKey}${query}`);
+  }
+
+  async getAdminPageContent(pageKey: string): Promise<{ contents: any[] }> {
+    return this.request<{ contents: any[] }>(`/admin/page-content/${pageKey}`);
+  }
+
+  async createOrUpdateAdminPageContent(pageContentData: {
+    page_key: string;
+    section_key?: string;
+    title?: { en: string; ar: string } | null;
+    subtitle?: { en: string; ar: string } | null;
+    description?: { en: string; ar: string } | null;
+    content?: any;
+    images?: string[];
+    button_text?: { en: string; ar: string } | null;
+    button_link?: string | null;
+    is_active?: boolean;
+    order_index?: number;
+    metadata?: any;
+  }): Promise<{ message: string; content: any }> {
+    return this.request<{ message: string; content: any }>('/admin/page-content', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...pageContentData,
+        title: pageContentData.title ? JSON.stringify(pageContentData.title) : null,
+        subtitle: pageContentData.subtitle ? JSON.stringify(pageContentData.subtitle) : null,
+        description: pageContentData.description ? JSON.stringify(pageContentData.description) : null,
+        button_text: pageContentData.button_text ? JSON.stringify(pageContentData.button_text) : null,
+        images: pageContentData.images ? JSON.stringify(pageContentData.images) : null,
+        content: pageContentData.content ? JSON.stringify(pageContentData.content) : null,
+        metadata: pageContentData.metadata ? JSON.stringify(pageContentData.metadata) : null,
+      }),
+    });
+  }
+
+  async updateAdminPageContent(id: string, pageContentData: {
+    title?: { en: string; ar: string } | null;
+    subtitle?: { en: string; ar: string } | null;
+    description?: { en: string; ar: string } | null;
+    content?: any;
+    images?: string[];
+    button_text?: { en: string; ar: string } | null;
+    button_link?: string | null;
+    is_active?: boolean;
+    order_index?: number;
+    metadata?: any;
+  }): Promise<{ message: string; content: any }> {
+    const payload: any = { ...pageContentData };
+    if (pageContentData.title !== undefined) payload.title = pageContentData.title ? JSON.stringify(pageContentData.title) : null;
+    if (pageContentData.subtitle !== undefined) payload.subtitle = pageContentData.subtitle ? JSON.stringify(pageContentData.subtitle) : null;
+    if (pageContentData.description !== undefined) payload.description = pageContentData.description ? JSON.stringify(pageContentData.description) : null;
+    if (pageContentData.button_text !== undefined) payload.button_text = pageContentData.button_text ? JSON.stringify(pageContentData.button_text) : null;
+    if (pageContentData.images !== undefined) payload.images = pageContentData.images ? JSON.stringify(pageContentData.images) : null;
+    if (pageContentData.content !== undefined) payload.content = pageContentData.content ? JSON.stringify(pageContentData.content) : null;
+    if (pageContentData.metadata !== undefined) payload.metadata = pageContentData.metadata ? JSON.stringify(pageContentData.metadata) : null;
+
+    return this.request<{ message: string; content: any }>(`/admin/page-content/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteAdminPageContent(id: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/admin/page-content/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create and export API client instance
@@ -1010,6 +1374,7 @@ export interface User {
   phone?: string;
   role: string;
   is_verified: boolean;
+  department_id?: string | null;
   created_at: string;
   updated_at?: string;
 }

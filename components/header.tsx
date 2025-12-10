@@ -6,9 +6,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { useTranslations, useLocale } from 'next-intl';
 import { Menu, X, User, LogOut, Shield, ChevronDown, Building2, MapPin, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/user-context";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,19 +27,45 @@ import { Service } from "@/lib/services";
 import type { RootState } from "@/store/store"; 
 import type { ServiceCenter } from "@/types/service-center";
 
+type TranslationObject = { en: string; ar: string } | string
+
+// Helper function to extract translation value
+function getTranslation(value: TranslationObject | undefined, locale: string): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    return value[locale as 'en' | 'ar'] || value.en || ''
+  }
+  return ''
+}
+
 export function Header() {
+  const t = useTranslations();
+  const locale = useLocale();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [deptSections, setDeptSections] = useState<Array<{ id: string; name: string }>>([]);
-  const [departments, setDepartments] = useState<Array<{ id: string; name: string; section_id: string; icon?: string }>>([]);
+  const [deptSections, setDeptSections] = useState<Array<{ id: string; name: string | TranslationObject }>>([]);
+  const [departments, setDepartments] = useState<Array<{ id: string; name: string | TranslationObject; section_id: string; icon?: string }>>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [serviceCenters, setServiceCenters] = useState<ServiceCenter[]>([]);
   const [hoveredSectionId, setHoveredSectionId] = useState<string | null>(null);
   const [expandedMobileSection, setExpandedMobileSection] = useState<string | null>(null);
-  const [hoveredCenterUnitId, setHoveredCenterUnitId] = useState<string | null>(null);
+  const [currentHash, setCurrentHash] = useState<string>('');
   const { isLoggedIn, logout, user } = useUser();
   const pathname = usePathname();
+  
+  // Track hash changes for active state
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentHash(window.location.hash);
+      const handleHashChange = () => {
+        setCurrentHash(window.location.hash);
+      };
+      window.addEventListener('hashchange', handleHashChange);
+      return () => window.removeEventListener('hashchange', handleHashChange);
+    }
+  }, [pathname]);
   
   const dispatch = useAppDispatch();
   const conference = useAppSelector((state: RootState) => {
@@ -53,10 +81,12 @@ export function Header() {
 
   // Helper function to check if a menu item is active
   const isActiveLink = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
+    console.log(href, pathname);
+    if (href === `/${locale}`) {
+      return pathname === `/${locale}/`;  
+
     }
-    return pathname.startsWith(href);
+    return pathname.startsWith(`/${locale}${href}`);
   };
 
   useEffect(() => {
@@ -72,7 +102,10 @@ export function Header() {
         // Load department sections
         const sectionsRes = await apiClient.getDepartmentSections();
         console.log('Loaded sections:', sectionsRes.sections?.length || 0);
-        setDeptSections(sectionsRes.sections.map((s: any) => ({ id: s.id, name: s.name })));
+        setDeptSections(sectionsRes.sections.map((s: any) => ({ 
+          id: s.id, 
+          name: getTranslation(s.name, locale) 
+        })));
         
         // Load departments
         const deptRes = await apiClient.getDepartments();
@@ -80,7 +113,7 @@ export function Header() {
         if (deptRes.departments?.length > 0) {
           setDepartments(deptRes.departments.map((d: any) => ({ 
             id: d.id, 
-            name: d.name, 
+            name: getTranslation(d.name, locale), 
             section_id: d.section_id,
             icon: d.icon 
           })));
@@ -89,7 +122,7 @@ export function Header() {
           console.log('API returned empty departments, creating fallback');
           const fallbackDepartments = sectionsRes.sections.slice(0, 6).map((section: any, idx: number) => ({
             id: String(idx + 1),
-            name: `${section.name} Department`,
+            name: `${getTranslation(section.name, locale)} Department`,
             section_id: section.id,
             icon: "🏛️"
           }));
@@ -107,6 +140,9 @@ export function Header() {
           const servicesList = Array.isArray(center.services) ? center.services : [];
           return {
             ...center,
+            name: getTranslation(center.name, locale),
+            headline: center.headline ? getTranslation(center.headline, locale) : undefined,
+            description: center.description ? getTranslation(center.description, locale) : undefined,
             equipments,
             products,
             services: servicesList
@@ -123,7 +159,10 @@ export function Header() {
             console.log('Using local departments fallback', departments.length);
             
             // Create basic sections from department names
-            const uniqueWords = Array.from(new Set(departments.map(d => d.name.split(" ")[0])));
+            const uniqueWords = Array.from(new Set(departments.map(d => {
+              const name = typeof d.name === 'string' ? d.name : getTranslation(d.name, locale);
+              return name.split(" ")[0];
+            })));
             const fallbackSections = uniqueWords.slice(0, 6).map((word, idx) => ({ 
               id: String(idx + 1), 
               name: word
@@ -133,7 +172,7 @@ export function Header() {
             // Map departments with section associations
             setDepartments(departments.map((d, idx) => ({ 
               id: d.id, 
-              name: d.name, 
+              name: typeof d.name === 'string' ? d.name : getTranslation(d.name, locale), 
               section_id: String((idx % fallbackSections.length) + 1), // Distribute across sections
               icon: d.icon || "🏛️"
             })));
@@ -175,7 +214,7 @@ export function Header() {
       }
     };
     loadData();
-  }, []);
+  }, [locale]);
 
   // Fix empty departments when we have sections but no departments
   useEffect(() => {
@@ -183,7 +222,7 @@ export function Header() {
       console.log('Fixing empty departments - creating departments for existing sections');
       const generatedDepartments = deptSections.map((section, idx) => ({
         id: String(idx + 1),
-        name: `${section.name} Department`,
+        name: `${getTranslation(section.name, locale)} Department`,
         section_id: section.id,
         icon: "🏛️"
       }));
@@ -192,48 +231,48 @@ export function Header() {
   }, [deptSections.length, departments.length]);
 
   const libraryLinks = [
-    { href: "/library/overview", label: "Overview" },
-    { href: "/library/books", label: "Books" },
-    { href: "/library/projects", label: "Projects" },
-    { href: "/library/publication", label: "Publication" },
-    { href: "/library/patent", label: "Patent" },
-    { href: "/library/citation", label: "Citation" },
-    { href: "/library/library", label: "Library" },
+    { href: "/library/overview", label: t('nav.overview') },
+    { href: "/library/books", label: t('nav.books') },
+    { href: "/library/projects", label: t('nav.projects') },
+    { href: "/library/publication", label: t('nav.publication') },
+    { href: "/library/citation", label: t('nav.citation') },
+    { href: "/library/library", label: t('nav.library') },
   ];
 
   const librarySubLinks = [
-    { href: "/library/journal", label: "Journal" },
-    { href: "/library/theses-phd", label: "Theses (PHD)" },
-    { href: "/library/theses-msc", label: "Theses (MSC)" },
+    { href: "/library/journal", label: t('nav.journal') },
+    { href: "/library/theses-phd", label: t('nav.thesesPhd') },
+    { href: "/library/theses-msc", label: t('nav.thesesMsc') },
+    { href: "/library/annual-report", label: t('nav.annualReport') },
+    { href: "/library/epri-book-edition", label: t('nav.epriBookEdition') },
   ];
 
   const moreLinks = [
-    { href: "/products", label: "Products" },
-    { href: "/training-center", label: "Training Center" },
-    { href: "/ejp-journal", label: "Ejp Journal" },
-    { href: "/tico-eclub", label: "Tico & E-Club" },
-    { href: "/contact", label: "Contact" },
+    { href: "/products", label: t('nav.products') },
+    { href: "/equipments", label: "Scientific Equipment" },
+    { href: "/news", label: "Research News" },
+    { href: "/contact", label: t('nav.contact') },
   ];
 
   const aboutLinks = [
-    { href: "/about/overview", label: "Overview" },
-    { href: "/about/top-management", label: "Top Management" },
-    { href: "/about/iso-certificate", label: "Accreditation (Iso certificates)" },
-    { href: "/about/awards", label: "Awards" },
-    { href: "/about/clients-partners", label: "Our clients partners" },
-    { href: "/about/schools", label: "Schools" },
-    { href: "/about/protocols-agreements", label: "Protocols & Agreements" },
+    { href: "/about/overview", label: t('nav.overview') },
+    { href: "/about/top-management", label: t('nav.topManagement') },
+    { href: "/about/iso-certificate", label: t('nav.isoCertificate') },
+    { href: "/about/awards", label: t('nav.awards') },
+    { href: "/about/clients-partners", label: t('nav.clientsPartners') },
+    { href: "/about/schools", label: t('nav.schools') },
+    { href: "/about/protocols-agreements", label: t('nav.protocolsAgreements') },
   ];
 
   const runLinks = [
-    { href: "/run/patent", label: "Patent" },
-    { href: "/run/citations", label: "Citations" },
+    { href: "/run/patent", label: t('nav.patent') },
+    { href: "/run/citations", label: t('nav.citations') },
   ];
 
   const newsLinks = [
-    { href: "/news", label: "News" },
-    { href: "/events", label: "Events" },
-    { href: "/news/electronical-magazine", label: "Electronical Magazine" },
+    { href: "/news", label: t('nav.news') },
+    { href: "/events", label: t('nav.events') },
+    { href: "/news/electronical-magazine", label: t('nav.electronicalMagazine') },
   ];
 
   useEffect(() => {
@@ -277,15 +316,15 @@ export function Header() {
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="container mx-auto px-3 sm:px-4">
-        <div className="flex h-16 sm:h-20 items-center justify-between gap-2">
+      <div className="px-4 mx-auto  sm:px-4">
+        <div className="flex h-20 sm:h-24 md:h-28 items-center justify-between gap-2">
           <Link href="/" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <Image
               src="/logo.png"
               alt="EPRI Logo"
-              width={120}
-              height={48}
-              className="h-8 sm:h-10 md:h-12 w-auto"
+              width={160}
+              height={64}
+              className="h-12 sm:h-14 md:h-16 lg:h-18 xl:h-20 w-auto"
               priority
             />
           </Link>
@@ -299,19 +338,19 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button 
-                    className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 ${
-                      isActiveLink('/about')
+                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
+                      isActiveLink(`${locale === "ar" ? "/ar" : ""}/about`)
                         ? "text-primary bg-primary/10 font-semibold"
                         : "text-foreground/80 hover:text-primary hover:bg-primary/5"
                     }`}
                   >
-                    <span className="relative z-10">About</span>
-                    <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <span className="relative z-10">{t('nav.about')}</span>
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     <div 
-                      className={`absolute inset-0 rounded-lg transition-opacity duration-200 ${
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
                         isActiveLink('/about')
                           ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100"
+                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
                       }`}
                     ></div>
                     {isActiveLink('/about') && (
@@ -320,77 +359,41 @@ export function Header() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48">
-                  {aboutLinks.map((link) => (
-                    <DropdownMenuItem key={link.href} asChild>
-                      <Link href={link.href} className="w-full">
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                  {aboutLinks.map((link) => {
+                    const isActive = isActiveLink(link.href);
+                    return (
+                      <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
+                        <Link 
+                          href={link.href} 
+                          className={`w-full hover:text-primary transition-colors relative ${
+                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
+                          }`}
+                        >
+                          {link.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
 
-
-
-              {/* News & Events Dropdown */}
+              {/* Departments Simple Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button 
-                    className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 ${
-                      isActiveLink('/news') || isActiveLink('/events')
-                        ? "text-primary bg-primary/10 font-semibold"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  >
-                    <span className="relative z-10 leading-tight">
-                      <span className="block">News & Events</span>
-                    </span>
-                    <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    <div 
-                      className={`absolute inset-0 rounded-lg transition-opacity duration-200 ${
-                        isActiveLink('/news') || isActiveLink('/events')
-                          ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100"
-                      }`}
-                    ></div>
-                    {(isActiveLink('/news') || isActiveLink('/events')) && (
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
-                    )}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
-                  {newsLinks.map((link) => (
-                    <DropdownMenuItem key={link.href} asChild>
-                      <Link href={link.href} className="w-full">
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-
-            </div>
-
-            {/* Mega Menu Navigation */}
-            <div className="flex items-center gap-1">
-              {/* Departments Mega Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button 
-                    className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 ${
+                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
                       isActiveLink('/departments') || isActiveLink('/laboratories')
                         ? "text-primary bg-primary/10 font-semibold"
                         : "text-foreground/80 hover:text-primary hover:bg-primary/5"
                     }`}
                   >
-                    <span className="relative z-10">Departments</span>
-                    <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <span className="relative z-10">{t('nav.departments')}</span>
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     <div 
-                      className={`absolute inset-0 rounded-lg transition-opacity duration-200 ${
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
                         isActiveLink('/departments') || isActiveLink('/laboratories')
                           ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100"
+                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
                       }`}
                     ></div>
                     {(isActiveLink('/departments') || isActiveLink('/laboratories')) && (
@@ -399,194 +402,55 @@ export function Header() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  className="w-[900px] max-h-[85vh] overflow-y-auto p-0 rounded-2xl border border-primary/20 ring-1 ring-primary/10 bg-linear-to-br from-background/95 to-background/80 backdrop-blur-xl shadow-2xl"
-                align="end"
-                onMouseLeave={() => setHoveredSectionId(null)}
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="w-64 max-h-[500px] overflow-y-auto"
+                  align="end"
                 >
-                  <div className="p-6 border-b border-primary/10">
-                    <h3 className="text-lg font-semibold text-foreground mb-1">Research Departments</h3>
-                    <p className="text-sm text-muted-foreground">Explore our specialized research divisions and laboratories</p>
-                  </div>
-                  <div className="flex min-h-[400px]">
-                    {/* Left Sidebar - Sections */}
-                    <div className="w-64 border-r border-primary/10 bg-primary/5 p-4">
-                      {deptSections.length > 0 ? (
-                        <div className="space-y-1">
-                          {deptSections.map((section) => {
-                            const sectionDepartments = departments.filter(dept => dept.section_id === section.id);
-                            const isHovered = hoveredSectionId === section.id;
-                            
-                            return (
-                              <div
-                                key={section.id}
-                                className="relative"
-                                onMouseEnter={() => setHoveredSectionId(section.id)}
-                              >
-                                <Link 
-                                  href={`/departments?sectionId=${section.id}`}
-                                  className={`block px-4 py-3 rounded-lg transition-all duration-200 ${
-                                    isHovered
-                                      ? "bg-primary/20 text-primary font-semibold"
-                                      : "text-foreground/80 hover:bg-primary/10 hover:text-primary"
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium">{section.name}</span>
-                                    {sectionDepartments.length > 0 && (
-                                      <span className="text-xs text-muted-foreground">
-                                        {sectionDepartments.length}
-                                      </span>
-                                    )}
-                                  </div>
-                                </Link>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <p className="text-sm text-muted-foreground">Loading sections...</p>
-                        </div>
-                      )}
-                    </div>
+                  <DropdownMenuItem asChild>
+                    <Link href="/departments" className="w-full">
+                      All Departments
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {departments.length > 0 ? (
+                    departments.map((dept) => (
+                      <DropdownMenuItem key={dept.id} asChild>
+                        <Link 
+                          href={`/departments/${dept.id}`}
+                          className="w-full"
+                        >
+                          {dept.icon && <span className="mr-2">{dept.icon}</span>}
+                          {typeof dept.name === 'string' ? dept.name : getTranslation(dept.name, locale)}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      <span className="text-muted-foreground">Loading departments...</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-                    {/* Right Content - Departments for Hovered Section */}
-                    <div className="flex-1 p-6">
-                      {hoveredSectionId ? (
-                        (() => {
-                          const section = deptSections.find(s => s.id === hoveredSectionId);
-                          const sectionDepartments = departments.filter(dept => dept.section_id === hoveredSectionId);
-                          
-                          return (
-                            <motion.div
-                              key={hoveredSectionId}
-                              initial={{ opacity: 0, x: 10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="h-full"
-                            >
-                              <div className="mb-4">
-                                <h4 className="text-base font-semibold text-foreground mb-1">
-                                  {section?.name}
-                                </h4>
-                                <p className="text-xs text-muted-foreground">
-                                  {sectionDepartments.length} {sectionDepartments.length === 1 ? 'department' : 'departments'}
-                                </p>
-                              </div>
-                              
-                              {sectionDepartments.length > 0 ? (
-                                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                                  {sectionDepartments.map((dept) => (
-                                    <motion.div
-                                      key={dept.id}
-                                      initial={{ opacity: 0, y: 5 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      transition={{ duration: 0.15 }}
-                                      className="border border-border/30 rounded-lg p-4 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200"
-                                    >
-                                      <Link
-                                        href={`/departments?sectionId=${hoveredSectionId}&departmentId=${dept.id}`}
-                                        className="block mb-3"
-                                      >
-                                        <h5 className="text-sm font-semibold text-foreground hover:text-primary transition-colors flex items-center gap-2">
-                                          {dept.icon && <span>{dept.icon}</span>}
-                                          {dept.name}
-                                        </h5>
-                                      </Link>
-                                      <div className="grid grid-cols-2 gap-2">
-                                        <Link
-                                          href={`/departments?sectionId=${hoveredSectionId}&departmentId=${dept.id}&tab=research-areas`}
-                                          className="text-xs text-muted-foreground hover:text-primary transition-colors py-1.5 px-2 rounded-md hover:bg-primary/10"
-                                        >
-                                          Research Areas
-                                        </Link>
-                                        <Link
-                                          href={`/departments?sectionId=${hoveredSectionId}&departmentId=${dept.id}&tab=projects`}
-                                          className="text-xs text-muted-foreground hover:text-primary transition-colors py-1.5 px-2 rounded-md hover:bg-primary/10"
-                                        >
-                                          Projects
-                                        </Link>
-                                        <Link
-                                          href={`/departments?sectionId=${hoveredSectionId}&departmentId=${dept.id}&tab=laboratories`}
-                                          className="text-xs text-muted-foreground hover:text-primary transition-colors py-1.5 px-2 rounded-md hover:bg-primary/10"
-                                        >
-                                          Laboratories
-                                        </Link>
-                                        <Link
-                                          href={`/departments?sectionId=${hoveredSectionId}&departmentId=${dept.id}&tab=staff`}
-                                          className="text-xs text-muted-foreground hover:text-primary transition-colors py-1.5 px-2 rounded-md hover:bg-primary/10"
-                                        >
-                                          Staff
-                                        </Link>
-                                      </div>
-                                    </motion.div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-center py-12">
-                                  <p className="text-sm text-muted-foreground">
-                                    No departments in this section yet.
-                                  </p>
-                                </div>
-                              )}
-                              
-                              {/* See All Departments Button */}
-                              <div className="mt-6 pt-4 border-t border-primary/10">
-                                <Button 
-                                  asChild 
-                                  size="sm" 
-                                  className="w-full bg-primary hover:bg-primary/90"
-                                >
-                                  <Link href={`/departments?sectionId=${hoveredSectionId}`}>
-                                    See All Departments
-                                  </Link>
-                                </Button>
-                              </div>
-                            </motion.div>
-                          );
-                        })()
-                      ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <div className="text-center">
-                            <p className="text-sm text-muted-foreground mb-2">
-                              Hover over a section to view departments
-                            </p>
-                            <Button asChild size="sm" variant="outline">
-                              <Link href="/departments">View All Departments</Link>
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-              {/* Service Centers & Units Mega Menu */}
+              {/* Service Centers & Units Simple Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 ${
+                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
                       isActiveLink('/service-centers')
                         ? "text-primary bg-primary/10 font-semibold"
                         : "text-foreground/80 hover:text-primary hover:bg-primary/5"
                     }`}
                   >
                     <span className="relative z-10 leading-tight">
-                      <span className="block">Service Centers & Units</span>
+                      <span className="block">{t('nav.serviceCenters').split('&')[0]}</span>
+                      <span className="block">{t('nav.serviceCenters').split('&')[1]}</span>
                     </span>
-                    <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     <div
-                      className={`absolute inset-0 rounded-lg transition-opacity duration-200 ${
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
                         isActiveLink('/service-centers')
                           ? "bg-primary/15 opacity-100"
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100"
+                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
                       }`}
                     ></div>
                     {isActiveLink('/service-centers') && (
@@ -595,254 +459,138 @@ export function Header() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  className="w-[900px] max-h-[85vh] overflow-y-auto p-0 rounded-2xl border border-primary/20 ring-1 ring-primary/10 bg-linear-to-br from-background/95 to-background/80 backdrop-blur-xl shadow-2xl"
+                  className="w-64 max-h-[500px] overflow-y-auto"
                   align="end"
-                  onMouseLeave={() => setHoveredCenterUnitId(null)}
                 >
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                  >
-                    <div className="p-6 border-b border-primary/10">
-                      <h3 className="text-lg font-semibold text-foreground mb-1">Service Centers & Units</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Explore accredited hubs and specialized units delivering testing, optimization, and innovation programs
-                      </p>
-                    </div>
-                    <div className="flex min-h-[400px]">
-                      {/* Left Sidebar - Centers & Units Categories */}
-                      <div className="w-64 border-r border-primary/10 bg-primary/5 p-4">
-                        {/* Centers Section */}
-                        <div className="mb-4">
-                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
-                            Centers
-                          </h4>
-                          <div className="space-y-1">
-                            {serviceCenters
-                              .filter(c => (c.type || 'center') === 'center')
-                              .slice(0, 4)
-                              .map((center) => {
-                                const isHovered = hoveredCenterUnitId === center.id;
-                                return (
-                                  <div
-                                    key={center.id}
-                                    className="relative"
-                                    onMouseEnter={() => setHoveredCenterUnitId(center.id)}
-                                  >
-                                    <Link
-                                      href={`/service-centers/${center.slug}`}
-                                      className={`block px-4 py-2 rounded-lg transition-all duration-200 ${
-                                        isHovered
-                                          ? "bg-primary/20 text-primary font-semibold"
-                                          : "text-foreground/80 hover:bg-primary/10 hover:text-primary"
-                                      }`}
-                                    >
-                                      <span className="text-sm">{center.name}</span>
-                                    </Link>
-                                  </div>
-                                );
-                              })}
-                          </div>
-                          {serviceCenters.filter(c => (c.type || 'center') === 'center').length > 4 && (
-                            <div className="mt-3 pt-3 border-t border-primary/10">
-                              <Button
-                                asChild
-                                variant="ghost"
-                                size="sm"
-                                className="w-full text-xs text-primary hover:text-primary hover:bg-primary/10"
-                              >
-                                <Link href="/service-centers?type=center">
-                                  See All Centers
-                                </Link>
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Units Section */}
-                        <div>
-                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+                  <DropdownMenuItem asChild>
+                    <Link href="/service-centers" className="w-full">
+                      All Centers & Units
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {serviceCenters.length > 0 ? (
+                    <>
+                      {serviceCenters
+                        .filter(c => (c.type || 'center') === 'center')
+                        .map((center) => (
+                          <DropdownMenuItem key={center.id} asChild>
+                            <Link 
+                              href={`/service-centers/${center.slug}`}
+                              className="w-full"
+                            >
+                              {typeof center.name === 'string' ? center.name : getTranslation(center.name, locale)}
+                            </Link>
+                          </DropdownMenuItem>
+                        ))}
+                      {serviceCenters.filter(c => c.type === 'unit').length > 0 && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
                             Units
-                          </h4>
-                          <div className="space-y-1">
-                            {serviceCenters
-                              .filter(c => c.type === 'unit')
-                              .slice(0, 4)
-                              .map((unit) => {
-                                const isHovered = hoveredCenterUnitId === unit.id;
-                                return (
-                                  <div
-                                    key={unit.id}
-                                    className="relative"
-                                    onMouseEnter={() => setHoveredCenterUnitId(unit.id)}
-                                  >
-                                    <Link
-                                      href={`/service-centers/${unit.slug}`}
-                                      className={`block px-4 py-2 rounded-lg transition-all duration-200 ${
-                                        isHovered
-                                          ? "bg-primary/20 text-primary font-semibold"
-                                          : "text-foreground/80 hover:bg-primary/10 hover:text-primary"
-                                      }`}
-                                    >
-                                      <span className="text-sm">{unit.name}</span>
-                                    </Link>
-                                  </div>
-                                );
-                              })}
                           </div>
-                          {serviceCenters.filter(c => c.type === 'unit').length > 4 && (
-                            <div className="mt-3 pt-3 border-t border-primary/10">
-                              <Button
-                                asChild
-                                variant="ghost"
-                                size="sm"
-                                className="w-full text-xs text-primary hover:text-primary hover:bg-primary/10"
-                              >
-                                <Link href="/service-centers?type=unit">
-                                  See All Units
+                          {serviceCenters
+                            .filter(c => c.type === 'unit')
+                            .map((unit) => (
+                              <DropdownMenuItem key={unit.id} asChild>
+                                <Link 
+                                  href={`/service-centers/${unit.slug}`}
+                                  className="w-full"
+                                >
+                                  {typeof unit.name === 'string' ? unit.name : getTranslation(unit.name, locale)}
                                 </Link>
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right Content - Sub-items for Hovered Center/Unit */}
-                      <div className="flex-1 p-6">
-                        {hoveredCenterUnitId ? (
-                          (() => {
-                            const centerUnit = serviceCenters.find(c => c.id === hoveredCenterUnitId);
-                            if (!centerUnit) return null;
-
-                            return (
-                              <motion.div
-                                key={hoveredCenterUnitId}
-                                initial={{ opacity: 0, x: 10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="h-full"
-                              >
-                                <div className="mb-4">
-                                  <h4 className="text-base font-semibold text-foreground mb-1">
-                                    {centerUnit.name}
-                                  </h4>
-                                  {centerUnit.headline && (
-                                    <p className="text-xs text-muted-foreground line-clamp-2">
-                                      {centerUnit.headline}
-                                    </p>
-                                  )}
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-3">
-                                  <Link
-                                    href={`/service-centers/${centerUnit.slug}#overview`}
-                                    className="text-xs text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20"
-                                  >
-                                    Overview
-                                  </Link>
-                                  <Link
-                                    href={`/service-centers/${centerUnit.slug}#lab-methodology`}
-                                    className="text-xs text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20"
-                                  >
-                                    Lab Methodology & Services
-                                  </Link>
-                                  <Link
-                                    href={`/service-centers/${centerUnit.slug}#events`}
-                                    className="text-xs text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20"
-                                  >
-                                    Events
-                                  </Link>
-                                  <Link
-                                    href={`/service-centers/${centerUnit.slug}#training`}
-                                    className="text-xs text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20"
-                                  >
-                                    Training & E-Learning
-                                  </Link>
-                                  <Link
-                                    href={`/service-centers/${centerUnit.slug}#products`}
-                                    className="text-xs text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20"
-                                  >
-                                    Products
-                                  </Link>
-                                  <Link
-                                    href={`/service-centers/${centerUnit.slug}#equipment`}
-                                    className="text-xs text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20"
-                                  >
-                                    Equipment List
-                                  </Link>
-                                  <Link
-                                    href={`/service-centers/${centerUnit.slug}#staff`}
-                                    className="text-xs text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20"
-                                  >
-                                    Staff
-                                  </Link>
-                                  <Link
-                                    href={`/service-centers/${centerUnit.slug}#work-volume`}
-                                    className="text-xs text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20"
-                                  >
-                                    Work Volume & Company Activity
-                                  </Link>
-                                  <Link
-                                    href={`/service-centers/${centerUnit.slug}#future-prospects`}
-                                    className="text-xs text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-primary/10 border border-transparent hover:border-primary/20"
-                                  >
-                                    Future Prospects
-                                  </Link>
-                                </div>
-
-                                {/* View Full Page Button */}
-                                <div className="mt-6 pt-4 border-t border-primary/10">
-                                  <Button
-                                    asChild
-                                    size="sm"
-                                    className="w-full bg-primary hover:bg-primary/90"
-                                  >
-                                    <Link href={`/service-centers/${centerUnit.slug}`}>
-                                      View Full Details
-                                    </Link>
-                                  </Button>
-                                </div>
-                              </motion.div>
-                            );
-                          })()
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <div className="text-center">
-                              <p className="text-sm text-muted-foreground mb-2">
-                                Hover over a center or unit to view details
-                              </p>
-                              <Button asChild size="sm" variant="outline">
-                                <Link href="/service-centers">View All Centers & Units</Link>
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
+                              </DropdownMenuItem>
+                            ))}
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      <span className="text-muted-foreground">Loading centers...</span>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* News & Events Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
+                      isActiveLink('/news') || isActiveLink('/events')
+                        ? "text-primary bg-primary/10 font-semibold"
+                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
+                  >
+                    <span className="relative z-10 leading-tight">
+                      <span className="block">{t('nav.newsEvents').split('&')[0]}</span>
+                      <span className="block">{t('nav.newsEvents').split('&')[1]}</span>
+                    </span>
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <div 
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
+                        isActiveLink('/news') || isActiveLink('/events')
+                          ? "bg-primary/15 opacity-100" 
+                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
+                      }`}
+                    ></div>
+                    {(isActiveLink('/news') || isActiveLink('/events')) && (
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  {newsLinks.map((link) => {
+                    const isActive = isActiveLink(link.href);
+                    return (
+                      <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
+                        <Link 
+                          href={link.href} 
+                          className={`w-full hover:text-primary transition-colors relative ${
+                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
+                          }`}
+                        >
+                          {link.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Training Center - Direct Link */}
+              <Link
+                href="/training-center"
+                className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg hover:scale-105 ${
+                  isActiveLink('/training-center')
+                    ? "text-primary bg-primary/10 font-semibold"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5 hover:shadow-md"
+                }`}
+              >
+                {t('nav.trainingCenter')}
+                {isActiveLink('/training-center') && (
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
+                )}
+              </Link>
 
               {/* Library & Scientific Situation Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button 
-                    className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 ${
+                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
                       libraryLinks.some(link => isActiveLink(link.href)) || librarySubLinks.some(link => isActiveLink(link.href))
                         ? "text-primary bg-primary/10 font-semibold"
                         : "text-foreground/80 hover:text-primary hover:bg-primary/5"
                     }`}
                   >
                     <span className="relative z-10 leading-tight">
-                      <span className="block">Library & Scientific Situation</span>
+                      {t('nav.library')}
                     </span>
-                    <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     <div 
-                      className={`absolute inset-0 rounded-lg transition-opacity duration-200 ${
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
                         libraryLinks.some(link => isActiveLink(link.href)) || librarySubLinks.some(link => isActiveLink(link.href))
                           ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100"
+                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
                       }`}
                     ></div>
                     {(libraryLinks.some(link => isActiveLink(link.href)) || librarySubLinks.some(link => isActiveLink(link.href))) && (
@@ -851,50 +599,151 @@ export function Header() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64">
-                  {libraryLinks.map((link) => (
-                    <DropdownMenuItem key={link.href} asChild>
-                      <Link 
-                        href={link.href} 
-                        className={`w-full ${isActiveLink(link.href) ? 'text-primary font-semibold' : ''}`}
-                      >
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                  {libraryLinks.map((link) => {
+                    const isActive = isActiveLink(link.href);
+                    return (
+                      <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
+                        <Link 
+                          href={link.href} 
+                          className={`w-full hover:text-primary transition-colors relative ${
+                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
+                          }`}
+                        >
+                          {link.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
                   <DropdownMenuSeparator />
                   <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Library Sub-sections
                   </div>
-                  {librarySubLinks.map((link) => (
-                    <DropdownMenuItem key={link.href} asChild>
-                      <Link 
-                        href={link.href} 
-                        className={`w-full pl-6 ${isActiveLink(link.href) ? 'text-primary font-semibold' : ''}`}
-                      >
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                  {librarySubLinks.map((link) => {
+                    const isActive = isActiveLink(link.href);
+                    return (
+                      <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
+                        <Link 
+                          href={link.href} 
+                          className={`w-full hover:text-primary transition-colors relative ${
+                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-6' : 'pl-8'
+                          }`}
+                        >
+                          {link.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* More Dropdown */}
+              {/* Innovation and Entrepreneurship - Dropdown Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button 
-                    className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 ${
-                      moreLinks.some(link => isActiveLink(link.href))
+                  <button
+                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
+                      isActiveLink('/innovation-and-entrepreneurship')
                         ? "text-primary bg-primary/10 font-semibold"
                         : "text-foreground/80 hover:text-primary hover:bg-primary/5"
                     }`}
                   >
-                    <span className="relative z-10">More</span>
-                    <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <span className="relative z-10 leading-tight">
+                      <span className="block">{t('nav.innovation.title').split(' ').slice(0, 2).join(' ')}</span>
+                      <span className="block">{t('nav.innovation.title').split(' ').slice(2).join(' ')}</span>
+                    </span>
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <div
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
+                        isActiveLink('/innovation-and-entrepreneurship')
+                          ? "bg-primary/15 opacity-100"
+                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
+                      }`}
+                    ></div>
+                    {isActiveLink('/innovation-and-entrepreneurship') && (
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-72 max-h-[500px] overflow-y-auto"
+                  align="end"
+                >
+                  <DropdownMenuItem asChild>
+                    <Link href="/innovation-and-entrepreneurship" className="w-full">
+                      {t('nav.innovation.overview')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/innovation-and-entrepreneurship/technology-transfer-tto" className="w-full">
+                      {t('nav.innovation.technologyTransferTTO')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/innovation-and-entrepreneurship/grant-international-cooperation-gico" className="w-full">
+                      {t('nav.innovation.grantInternationalCooperationGICO')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/innovation-and-entrepreneurship/technology-innovation-support-tisc" className="w-full">
+                      {t('nav.innovation.technologyInnovationSupportTISC')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/innovation-and-entrepreneurship/ip-management" className="w-full">
+                      {t('nav.innovation.ipManagement')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/innovation-and-entrepreneurship/e-club" className="w-full">
+                      {t('nav.innovation.eClub')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/innovation-and-entrepreneurship/incubators-startups" className="w-full">
+                      {t('nav.innovation.incubatorsStartups')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/innovation-and-entrepreneurship/patent" className="w-full">
+                      {t('nav.innovation.patent')}
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* EJP Journal - Direct Link */}
+              <Link
+                href="/ejp-journal"
+                className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg hover:scale-105 ${
+                  isActiveLink('/ejp-journal')
+                    ? "text-primary bg-primary/10 font-semibold"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5 hover:shadow-md"
+                }`}
+              >
+                <span className="block">{t('nav.ejpJournal').split(' ')[0]}</span>
+                <span className="block">{t('nav.ejpJournal').split(' ').slice(1).join(' ')}</span>
+                {isActiveLink('/ejp-journal') && (
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
+                )}
+              </Link>
+
+              {/* More Dropdown - Last menu item */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
+                    moreLinks.some(link => isActiveLink(link.href))
+                      ? "text-primary bg-primary/10 font-semibold"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  >
+                    <span className="relative z-10">{t('nav.more')}</span>
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     <div 
-                      className={`absolute inset-0 rounded-lg transition-opacity duration-200 ${
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
                         moreLinks.some(link => isActiveLink(link.href))
                           ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100"
+                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
                       }`}
                     ></div>
                     {moreLinks.some(link => isActiveLink(link.href)) && (
@@ -903,16 +752,21 @@ export function Header() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  {moreLinks.map((link) => (
-                    <DropdownMenuItem key={link.href} asChild>
-                      <Link 
-                        href={link.href} 
-                        className={`w-full ${isActiveLink(link.href) ? 'text-primary font-semibold' : ''}`}
-                      >
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                  {moreLinks.map((link) => {
+                    const isActive = isActiveLink(link.href);
+                    return (
+                      <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
+                        <Link 
+                          href={link.href} 
+                          className={`w-full hover:text-primary transition-colors relative ${
+                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
+                          }`}
+                        >
+                          {link.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -920,25 +774,26 @@ export function Header() {
           </nav>
 
           <div className="hidden lg:flex items-center gap-2 xl:gap-4 ml-2 xl:ml-4 flex-shrink-0">
+            <LanguageSwitcher />
             {isLoggedIn ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="hover:bg-primary/5 px-3 xl:px-4 py-2 rounded-lg transition-all duration-200 group text-sm">
                     <User className="h-4 w-4 mr-1 xl:mr-2" />
-                    <span className="hidden xl:inline">My Account</span>
-                    <span className="xl:hidden">Account</span>
+                    <span className="hidden xl:inline">{t('nav.myAccount')}</span>
+                    <span className="xl:hidden">{t('nav.account')}</span>
                     <ChevronDown className="h-3 w-3 ml-1 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard">Dashboard</Link>
+                    <Link href="/dashboard">{t('nav.dashboard')}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/my-courses">My Courses</Link>
+                    <Link href="/dashboard/my-courses">{t('nav.myCourses')}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/wishlist">My Wishlist</Link>
+                    <Link href="/dashboard/wishlist">{t('nav.myWishlist')}</Link>
                   </DropdownMenuItem>
                   {user?.role === 'ADMIN' && (
                     <>
@@ -946,7 +801,7 @@ export function Header() {
                       <DropdownMenuItem asChild>
                         <Link href="/admin">
                           <Shield className="h-4 w-4 mr-2" />
-                          Admin Dashboard
+                          {t('nav.adminDashboard')}
                         </Link>
                       </DropdownMenuItem>
                     </>
@@ -954,17 +809,17 @@ export function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="text-accent">
                     <LogOut className="h-4 w-4 mr-2" />
-                    Logout
+                    {t('common.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <>
                 <Button variant="ghost" asChild className="hover:bg-primary/5 px-3 xl:px-4 py-2 rounded-lg transition-all duration-200 text-sm">
-                  <Link href="/login">Login</Link>
+                  <Link href="/login">{t('common.login')}</Link>
                 </Button>
                 <Button asChild className="bg-primary hover:bg-primary/90 px-3 xl:px-5 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-sm">
-                  <Link href="/register">Get Started</Link>
+                  <Link href="/register">{t('nav.getStarted')}</Link>
                 </Button>
               </>
             )}
@@ -991,8 +846,8 @@ export function Header() {
             <nav className="flex flex-col space-y-1">
 
               {/* About Section */}
-              <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                About
+              <div className={`py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider `}>
+                {t('nav.about')}
               </div>
               {aboutLinks.map((link) => {
                 const isActive = isActiveLink(link.href);
@@ -1015,7 +870,7 @@ export function Header() {
 
               {/* News & Events Section */}
               <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                News & Events
+                {t('nav.newsEvents')}
               </div>
               {newsLinks.map((link) => {
                 const isActive = isActiveLink(link.href);
@@ -1035,9 +890,130 @@ export function Header() {
                 );
               })}
 
+              {/* Training Center - Mobile */}
+              <Link
+                href="/training-center"
+                className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
+                  isActiveLink('/training-center')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t('nav.trainingCenter')}
+              </Link>
+
+              {/* EJP Journal - Mobile */}
+              <Link
+                href="/ejp-journal"
+                className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
+                  isActiveLink('/ejp-journal')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t('nav.ejpJournal')}
+              </Link>
+
+              {/* Innovation and Entrepreneurship - Mobile */}
+              <div className="py-2">
+                <div className="px-8 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  {t('nav.innovation.title')}
+                </div>
+                <Link
+                  href="/innovation-and-entrepreneurship"
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
+                    isActiveLink('/innovation-and-entrepreneurship')
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.innovation.overview')}
+                </Link>
+                <Link
+                  href="/innovation-and-entrepreneurship/technology-transfer-tto"
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
+                    isActiveLink('/innovation-and-entrepreneurship/technology-transfer-tto')
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.innovation.technologyTransferTTO')}
+                </Link>
+                <Link
+                  href="/innovation-and-entrepreneurship/grant-international-cooperation-gico"
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
+                    isActiveLink('/innovation-and-entrepreneurship/grant-international-cooperation-gico')
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.innovation.grantInternationalCooperationGICO')}
+                </Link>
+                <Link
+                  href="/innovation-and-entrepreneurship/technology-innovation-support-tisc"
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
+                    isActiveLink('/innovation-and-entrepreneurship/technology-innovation-support-tisc')
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.innovation.technologyInnovationSupportTISC')}
+                </Link>
+                <Link
+                  href="/innovation-and-entrepreneurship/ip-management"
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
+                    isActiveLink('/innovation-and-entrepreneurship/ip-management')
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.innovation.ipManagement')}
+                </Link>
+                <Link
+                  href="/innovation-and-entrepreneurship/e-club"
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
+                    isActiveLink('/innovation-and-entrepreneurship/e-club')
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.innovation.eClub')}
+                </Link>
+                <Link
+                  href="/innovation-and-entrepreneurship/incubators-startups"
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
+                    isActiveLink('/innovation-and-entrepreneurship/incubators-startups')
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.innovation.incubatorsStartups')}
+                </Link>
+                <Link
+                  href="/innovation-and-entrepreneurship/patent"
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
+                    isActiveLink('/innovation-and-entrepreneurship/patent')
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('nav.innovation.patent')}
+                </Link>
+              </div>
+
               {/* Library & Scientific Situation Section */}
               <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Library & Scientific Situation
+                {t('nav.library')}
               </div>
               {libraryLinks.map((link) => {
                 const isActive = isActiveLink(link.href);
@@ -1120,7 +1096,7 @@ export function Header() {
                           }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
-                          {section.name}
+                          {typeof section.name === 'string' ? section.name : getTranslation(section.name, locale)}
                         </Link>
                         {sectionDepartments.length > 0 && (
                           <button
@@ -1140,37 +1116,57 @@ export function Header() {
                             <div key={dept.id} className="space-y-1">
                               <Link
                                 href={`/departments?sectionId=${section.id}&departmentId=${dept.id}`}
-                                className="block py-1.5 px-4 text-xs font-medium text-foreground hover:text-primary transition-colors"
+                                className={`block py-1.5 px-4 text-xs font-medium transition-colors ${
+                                  isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}`)
+                                    ? "text-primary font-semibold"
+                                    : "text-foreground hover:text-primary"
+                                }`}
                                 onClick={() => setMobileMenuOpen(false)}
                               >
                                 {dept.icon && <span className="mr-2">{dept.icon}</span>}
-                                {dept.name}
+                                {typeof dept.name === 'string' ? dept.name : getTranslation(dept.name, locale)}
                               </Link>
                               <div className="pl-6 space-y-1">
                                 <Link
                                   href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=research-areas`}
-                                  className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                                  className={`block py-1 px-4 text-xs transition-colors ${
+                                    isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=research-areas`)
+                                      ? "text-primary font-semibold"
+                                      : "text-muted-foreground hover:text-primary"
+                                  }`}
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
                                   Research Areas
                                 </Link>
                                 <Link
                                   href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=projects`}
-                                  className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                                  className={`block py-1 px-4 text-xs transition-colors ${
+                                    isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=projects`)
+                                      ? "text-primary font-semibold"
+                                      : "text-muted-foreground hover:text-primary"
+                                  }`}
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
                                   Projects
                                 </Link>
                                 <Link
                                   href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=laboratories`}
-                                  className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                                  className={`block py-1 px-4 text-xs transition-colors ${
+                                    isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=laboratories`)
+                                      ? "text-primary font-semibold"
+                                      : "text-muted-foreground hover:text-primary"
+                                  }`}
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
                                   Laboratories
                                 </Link>
                                 <Link
                                   href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=staff`}
-                                  className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                                  className={`block py-1 px-4 text-xs transition-colors ${
+                                    isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=staff`)
+                                      ? "text-primary font-semibold"
+                                      : "text-muted-foreground hover:text-primary"
+                                  }`}
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
                                   Staff
@@ -1230,74 +1226,110 @@ export function Header() {
                       <Link
                         href={`/service-centers/${center.slug}`}
                         className={`block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                          isActiveLink('/service-centers')
+                          isActiveLink(`/service-centers/${center.slug}`)
                             ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
                             : "text-foreground/80 hover:text-primary hover:bg-primary/5"
                         }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        {center.name}
+                        {typeof center.name === 'string' ? center.name : getTranslation(center.name, locale)}
                       </Link>
                       <div className="pl-12 space-y-1">
                         <Link
                           href={`/service-centers/${center.slug}#overview`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            pathname.includes(`/service-centers/${center.slug}`) && (currentHash === '#overview' || (!currentHash && pathname === `/service-centers/${center.slug}`))
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Overview
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#lab-methodology`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#lab-methodology'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Lab Methodology & Services
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#events`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#events'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Events
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#training`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#training'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Training & E-Learning
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#products`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#products'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Products
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#equipment`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#equipment'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Equipment List
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#staff`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#staff'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Staff
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#work-volume`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#work-volume'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Work Volume & Company Activity
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#future-prospects`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#future-prospects'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Future Prospects
@@ -1335,74 +1367,110 @@ export function Header() {
                       <Link
                         href={`/service-centers/${unit.slug}`}
                         className={`block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                          isActiveLink('/service-centers')
+                          isActiveLink(`/service-centers/${unit.slug}`)
                             ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
                             : "text-foreground/80 hover:text-primary hover:bg-primary/5"
                         }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        {unit.name}
+                        {typeof unit.name === 'string' ? unit.name : getTranslation(unit.name, locale)}
                       </Link>
                       <div className="pl-12 space-y-1">
                         <Link
                           href={`/service-centers/${unit.slug}#overview`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            pathname.includes(`/service-centers/${unit.slug}`) && (currentHash === '#overview' || (!currentHash && pathname === `/service-centers/${unit.slug}`))
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Overview
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#lab-methodology`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#lab-methodology'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Lab Methodology & Services
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#events`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#events'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Events
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#training`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#training'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Training & E-Learning
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#products`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#products'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Products
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#equipment`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#equipment'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Equipment List
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#staff`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#staff'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Staff
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#work-volume`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#work-volume'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Work Volume & Company Activity
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#future-prospects`}
-                          className="block py-1 px-4 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          className={`block py-1 px-4 text-xs transition-colors ${
+                            currentHash === '#future-prospects'
+                              ? "text-primary font-semibold"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Future Prospects

@@ -7,7 +7,8 @@ export function ConditionalHeader() {
   const pathname = usePathname();
   
   // Don't show header on admin pages
-  if (pathname?.startsWith("/admin")) {
+  // Also check for locale prefix (e.g., /en/admin or /ar/admin)
+  if (pathname?.includes("/admin")) {
     return null;
   }
   

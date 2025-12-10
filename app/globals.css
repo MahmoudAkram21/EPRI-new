@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -82,6 +81,7 @@
   /* Inter font for clean, modern, professional typography */
   --font-sans: var(--font-inter);
   --font-serif: var(--font-inter);
+  --font-cairo: var(--font-cairo);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -128,6 +128,12 @@
     @apply bg-background text-foreground;
   }
 }
+html[lang="ar"] body,
+html[lang="ar"] body *,
+html[dir="rtl"] body,
+html[dir="rtl"] body * {
+  font-family: var(--font-cairo), "Cairo", sans-serif !important;
+}
 
 /* Announcements Swiper Styles */
 .announcements-swiper .swiper-pagination {
@@ -144,4 +150,14 @@
 
 .announcements-swiper .swiper-pagination-bullet-active {
   transform: scale(1.25);
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
 }

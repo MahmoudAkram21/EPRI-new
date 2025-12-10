@@ -1,53 +1,37 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import { Suspense } from "react"
-import { UserProvider } from "@/contexts/user-context"
-import { ReduxProvider } from "@/store/ReduxProvider"
-import { Toaster } from "@/components/ui/toaster"
-import "./globals.css"
-import { ConditionalHeader } from '@/components/conditional-header'
-import { ConditionalFooter } from '@/components/conditional-footer'
-import { VisitTrackerProvider } from '@/components/visit-tracker-provider'
-import { SocialMediaButtons } from '@/components/social-media-buttons'
+import type { Metadata } from "next";
+import { Inter, Cairo } from "next/font/google";
+import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
-})
+});
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  variable: "--font-cairo",
+  display: "swap",
+  weight: ["200", "300", "400", "500", "600", "700", "800", "900", "1000"],
+});
 
 export const metadata: Metadata = {
   title: "EPRI - Egyptian Petroleum Research Institute",
-  description:
-    "Leading educational and research institute offering world-class courses in petroleum engineering, energy, and related fields",
-  generator: "v0.app",
-  icons: {
-    icon: "/favicon.jpg",
-  },
-}
+  description: "Egyptian Petroleum Research Institute",
+};
 
+// Root layout - must include html and body tags
+// The locale-specific lang and dir will be set by the [locale] layout
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <ReduxProvider>
-          <UserProvider>
-            <VisitTrackerProvider />
-            <ConditionalHeader />
-            <Suspense fallback={null}>{children}</Suspense>
-            <Toaster />
-            <ConditionalFooter />
-            <SocialMediaButtons position="right" showLabels={true} />
-          </UserProvider>
-        </ReduxProvider>
-        <Analytics />
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} ${cairo.variable} font-sans antialiased`}>
+        {children}
       </body>
     </html>
-  )
+  );
 }

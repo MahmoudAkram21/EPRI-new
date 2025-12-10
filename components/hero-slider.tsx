@@ -7,92 +7,138 @@ import Link from "next/link"
 import { ArrowRight, ChevronLeft, ChevronRight, Microscope, Calendar, Wrench, Lightbulb, Users, Award } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { DecorativeShapes } from "./decorative-shapes"
+import { apiClient } from "@/lib/api"
+import { useLocale } from "next-intl"
 
-const slides = [
-  {
-    id: 1,
-    image: "/petroleum-lab-testing.jpg",
-    title: "World-Class Petroleum Analysis & Testing",
-    subtitle: "Comprehensive crude oil analysis with state-of-the-art technology and expert precision",
-    description: "Advanced GC-MS, spectrophotometry, and viscometry services for petroleum quality assurance",
-    cta: "Explore Our Services",
-    ctaLink: "/services",
-    badge: "Laboratory Services",
-    icon: Microscope,
-    stats: [
-      { value: "500+", label: "Tests Completed" },
-      { value: "98%", label: "Accuracy Rate" },
-    ],
-  },
-  {
-    id: 2,
-    image: "/conference-symposium.jpg",
-    title: "Annual Research Symposium 2025",
-    subtitle: "Join leading researchers and industry experts for groundbreaking insights",
-    description: "April 15, 2025 • Main Campus Auditorium • 500 Capacity",
-    cta: "Register Now",
-    ctaLink: "/events/1",
-    badge: "Featured Event",
-    icon: Calendar,
-    stats: [
-      { value: "342", label: "Registered" },
-      { value: "15+", label: "Speakers" },
-    ],
-  },
-  {
-    id: 3,
-    image: "/reservoir-engineering.jpg",
-    title: "Advanced Reservoir Engineering Services",
-    subtitle: "Maximize hydrocarbon recovery with cutting-edge simulation and analysis",
-    description: "Comprehensive reservoir characterization, modeling, and production optimization",
-    cta: "Learn More",
-    ctaLink: "/services",
-    badge: "Engineering Services",
-    icon: Wrench,
-    stats: [
-      { value: "100+", label: "Projects" },
-      { value: "30+", label: "Years Experience" },
-    ],
-  },
-  {
-    id: 4,
-    image: "/ai-technology-workshop.jpg",
-    title: "Upcoming: AI in Petroleum Technology Workshop",
-    subtitle: "Master the future of energy with artificial intelligence applications",
-    description: "Hands-on training in machine learning for petroleum exploration and production",
-    cta: "View Events",
-    ctaLink: "/events",
-    badge: "Workshop",
-    icon: Lightbulb,
-    stats: [
-      { value: "3 Days", label: "Duration" },
-      { value: "Certificate", label: "Included" },
-    ],
-  },
-]
+type MediaType = "image" | "video"
+
+interface Slide {
+  id: string
+  mediaType?: MediaType
+  image?: string
+  video?: string
+  title: string
+  subtitle: string
+  description: string
+  cta: string
+  ctaLink: string
+  badge: string
+  icon: React.ComponentType<{ className?: string }>
+  stats: Array<{ value: string; label: string }>
+}
+
+// Icon mapping
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Microscope,
+  Calendar,
+  Wrench,
+  Lightbulb,
+  Users,
+  Award,
+}
+
+// Default icon if not found
+const DefaultIcon = Microscope
+
+// Helper function to extract localized value
+function getLocalizedValue(value: any, locale: string): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    return value[locale as 'en' | 'ar'] || value.en || value.ar || ''
+  }
+  return ''
+}
 
 export function HeroSlider() {
+  const locale = useLocale()
+  const [slides, setSlides] = useState<Slide[]>([])
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
-
-  const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length)
-  }, [])
-
-  const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
-  }, [])
-
-  const goToSlide = useCallback((index: number) => {
-    setCurrentSlide(index)
-  }, [])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!isPaused) {
+    const fetchSliders = async () => {
+      try {
+        setLoading(true)
+        const response = await apiClient.getHeroSliders()
+        const sliders = response.sliders || []
+        
+        const transformedSlides: Slide[] = sliders.map((slider: any) => {
+          const stats = slider.stats || []
+          const IconComponent = slider.icon ? iconMap[slider.icon] || DefaultIcon : DefaultIcon
+          
+          return {
+            id: slider.id,
+            mediaType: slider.media_type === 'video' ? 'video' : 'image',
+            image: slider.image || undefined,
+            video: slider.video || undefined,
+            title: getLocalizedValue(slider.title, locale),
+            subtitle: getLocalizedValue(slider.subtitle, locale),
+            description: getLocalizedValue(slider.description, locale),
+            cta: getLocalizedValue(slider.cta, locale),
+            ctaLink: slider.cta_link || '/',
+            badge: getLocalizedValue(slider.badge, locale),
+            icon: IconComponent,
+            stats: stats.map((stat: any) => ({
+              value: stat.value || '',
+              label: getLocalizedValue(stat.label, locale)
+            }))
+          }
+        })
+        
+        setSlides(transformedSlides)
+      } catch (error) {
+        console.error('Error fetching hero sliders:', error)
+        // Fallback to empty array on error
+        setSlides([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSliders()
+  }, [locale])
+
+  const nextSlide = useCallback(() => {
+    if (slides.length > 0) {
+      setCurrentSlide((prev) => (prev + 1) % slides.length)
+    }
+  }, [slides.length])
+
+  const prevSlide = useCallback(() => {
+    if (slides.length > 0) {
+      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
+    }
+  }, [slides.length])
+
+  const goToSlide = useCallback((index: number) => {
+    if (index >= 0 && index < slides.length) {
+      setCurrentSlide(index)
+    }
+  }, [slides.length])
+
+  useEffect(() => {
+    if (!isPaused && slides.length > 0) {
       const interval = setInterval(nextSlide, 5000)
       return () => clearInterval(interval)
     }
-  }, [isPaused, nextSlide])
+  }, [isPaused, nextSlide, slides.length])
+
+  if (loading) {
+    return (
+      <section className="relative h-screen overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading hero slider...</p>
+        </div>
+      </section>
+    )
+  }
+
+  if (slides.length === 0) {
+    return null
+  }
 
   const currentSlideData = slides[currentSlide]
   const Icon = currentSlideData.icon
@@ -112,26 +158,46 @@ export function HeroSlider() {
           transition={{ duration: 0.7, ease: "easeInOut" }}
           className="absolute inset-0"
         >
-          {/* Background Image with Parallax Effect */}
+          {/* Background Media (Image or Video) with Parallax Effect */}
           <motion.div
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
             className="absolute inset-0"
           >
-            <img
-              src={currentSlideData.image || "/placeholder.svg"}
-              alt={currentSlideData.title}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+            {currentSlideData.mediaType === "video" && currentSlideData.video ? (
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              >
+                <source src={currentSlideData.video} type="video/mp4" />
+                {/* Fallback to image if video fails */}
+                {currentSlideData.image && (
+                  <img
+                    src={currentSlideData.image}
+                    alt={currentSlideData.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+              </video>
+            ) : (
+              <img
+                src={currentSlideData.image || "/placeholder.svg"}
+                alt={currentSlideData.title}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
           </motion.div>
 
           {/* Gradient Overlay with Modern Effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/85 to-primary/75 z-10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/85 to-primary/75 z-10" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent z-10" />
 
           {/* Decorative Shapes */}
-          <div className="absolute inset-0 z-15">
+          <div className="absolute inset-0 z-[15]">
             <DecorativeShapes />
           </div>
 
