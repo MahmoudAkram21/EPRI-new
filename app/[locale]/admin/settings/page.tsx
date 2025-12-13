@@ -100,6 +100,69 @@ const HOME_SECTIONS = [
   { key: 'connect', icon: Globe },
 ];
 
+const PAGE_TABS = [
+  { 
+    key: 'about', 
+    icon: Users, 
+    label: 'About',
+    sections: ['overview', 'top-management', 'iso-certificate', 'awards', 'clients-partners', 'schools', 'protocols-agreements']
+  },
+  { 
+    key: 'departments', 
+    icon: Briefcase, 
+    label: 'Departments',
+    sections: ['overview']
+  },
+  { 
+    key: 'services', 
+    icon: Wrench, 
+    label: 'Services',
+    sections: ['overview']
+  },
+  { 
+    key: 'training', 
+    icon: GraduationCap, 
+    label: 'Training Center',
+    sections: ['overview']
+  },
+  { 
+    key: 'library', 
+    icon: Library, 
+    label: 'Library',
+    sections: ['overview']
+  },
+  { 
+    key: 'news', 
+    icon: Newspaper, 
+    label: 'News',
+    sections: ['overview']
+  },
+  { 
+    key: 'events', 
+    icon: Calendar, 
+    label: 'Events',
+    sections: ['overview']
+  },
+  { 
+    key: 'products', 
+    icon: ShoppingBag, 
+    label: 'Products',
+    sections: ['overview']
+  },
+  { 
+    key: 'equipment', 
+    icon: Microscope, 
+    label: 'Equipment',
+    sections: ['overview']
+  },
+  { 
+    key: 'innovation', 
+    icon: Sparkles, 
+    label: 'Innovation',
+    sections: ['overview']
+  },
+];
+
 export default function AdminSettings() {
   const { toast } = useToast();
   const locale = useLocale();
@@ -137,7 +200,18 @@ export default function AdminSettings() {
   useEffect(() => {
     fetchHomeContent();
     fetchHeroSliders();
+    // Load content for the active tab if it's a page tab
+    if (PAGE_TABS.some(tab => tab.key === activeTab)) {
+      fetchPageContent(activeTab);
+    }
   }, []);
+
+  // Load page content when tab changes to a page tab
+  useEffect(() => {
+    if (PAGE_TABS.some(tab => tab.key === activeTab)) {
+      fetchPageContent(activeTab);
+    }
+  }, [activeTab]);
 
   const fetchHeroSliders = async () => {
     setHeroSliderLoading(true);
