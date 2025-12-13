@@ -235,7 +235,7 @@ export function Header() {
     { href: "/library/books", label: t('nav.books') },
     { href: "/library/projects", label: t('nav.projects') },
     { href: "/library/publication", label: t('nav.publication') },
-    { href: "/library/citation", label: t('nav.citation') },
+    { href: "/library/citation", label: t('nav.citation.title') },
     { href: "/library/library", label: t('nav.library') },
   ];
 

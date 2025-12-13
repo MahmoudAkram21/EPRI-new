@@ -27,11 +27,11 @@ export default function CitationPage() {
           </div>
           
           <h1 className="font-serif text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl mb-6">
-            {t('nav.citation')}
+            {t('nav.citation.title')}
           </h1>
           
           <p className="mx-auto max-w-3xl text-lg leading-relaxed text-white/90 sm:text-xl mb-8">
-            {t('citation.description')}
+            {t('nav.citation.description')}
           </p>
         </div>
       </Section>
@@ -41,9 +41,9 @@ export default function CitationPage() {
         <div className="space-y-8">
           <Card className="border-slate-200/80 bg-white/50 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/50">
             <CardHeader>
-              <CardTitle className="text-2xl">{t('citation.title')}</CardTitle>
+              <CardTitle className="text-2xl">{t('nav.citation.title')}</CardTitle>
               <CardDescription className="text-base">
-                {t('citation.sciValDescription')}
+                {t('nav.citation.sciValDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -68,7 +68,7 @@ export default function CitationPage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2"
                   >
-                    {t('citation.linkToSciVal')}
+                    {t('nav.citation.linkToSciVal')}
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 </Button>

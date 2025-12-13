@@ -1,4 +1,9 @@
 import createNextIntlPlugin from 'next-intl/plugin';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const withNextIntl = createNextIntlPlugin();
 
@@ -23,6 +28,8 @@ const nextConfig = {
       },
     ],
   },
+  // Explicitly set the workspace root to avoid lockfile detection warnings
+  outputFileTracingRoot: __dirname,
 }
 
 export default withNextIntl(nextConfig)
