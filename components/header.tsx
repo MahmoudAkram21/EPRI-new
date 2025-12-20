@@ -18,13 +18,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { departments } from "@/lib/data";
 import { apiClient } from "@/lib/api";
-import { motion } from "framer-motion";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchConference, selectShouldFetchConference, clearConference, type ConferenceState } from "@/store/slices/conferenceSlice";
 import { Service } from "@/lib/services";
-import type { RootState } from "@/store/store"; 
+import type { RootState } from "@/store/store";
 import type { ServiceCenter } from "@/types/service-center";
 
 type TranslationObject = { en: string; ar: string } | string
@@ -49,12 +47,11 @@ export function Header() {
   const [departments, setDepartments] = useState<Array<{ id: string; name: string | TranslationObject; section_id: string; icon?: string }>>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [serviceCenters, setServiceCenters] = useState<ServiceCenter[]>([]);
-  const [hoveredSectionId, setHoveredSectionId] = useState<string | null>(null);
   const [expandedMobileSection, setExpandedMobileSection] = useState<string | null>(null);
   const [currentHash, setCurrentHash] = useState<string>('');
   const { isLoggedIn, logout, user } = useUser();
   const pathname = usePathname();
-  
+
   // Track hash changes for active state
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -66,7 +63,7 @@ export function Header() {
       return () => window.removeEventListener('hashchange', handleHashChange);
     }
   }, [pathname]);
-  
+
   const dispatch = useAppDispatch();
   const conference = useAppSelector((state: RootState) => {
     const conf = state.conference as ConferenceState;
@@ -76,14 +73,14 @@ export function Header() {
     const conf = state.conference as ConferenceState;
     return selectShouldFetchConference({ conference: conf });
   });
-  
+
   const hasConference = !!conference;
 
   // Helper function to check if a menu item is active
   const isActiveLink = (href: string) => {
     console.log(href, pathname);
     if (href === `/${locale}`) {
-      return pathname === `/${locale}/`;  
+      return pathname === `/${locale}/`;
 
     }
     return pathname.startsWith(`/${locale}${href}`);
@@ -102,20 +99,20 @@ export function Header() {
         // Load department sections
         const sectionsRes = await apiClient.getDepartmentSections();
         console.log('Loaded sections:', sectionsRes.sections?.length || 0);
-        setDeptSections(sectionsRes.sections.map((s: any) => ({ 
-          id: s.id, 
-          name: getTranslation(s.name, locale) 
+        setDeptSections(sectionsRes.sections.map((s: any) => ({
+          id: s.id,
+          name: getTranslation(s.name, locale)
         })));
-        
+
         // Load departments
         const deptRes = await apiClient.getDepartments();
         console.log('Loaded departments:', deptRes.departments?.length || 0);
         if (deptRes.departments?.length > 0) {
-          setDepartments(deptRes.departments.map((d: any) => ({ 
-            id: d.id, 
-            name: getTranslation(d.name, locale), 
+          setDepartments(deptRes.departments.map((d: any) => ({
+            id: d.id,
+            name: getTranslation(d.name, locale),
             section_id: d.section_id,
-            icon: d.icon 
+            icon: d.icon
           })));
         } else {
           // If API returns empty departments, create fallback departments for each section
@@ -128,7 +125,7 @@ export function Header() {
           }));
           setDepartments(fallbackDepartments);
         }
-        
+
         // Load services
         const servicesRes = await apiClient.getServices();
         setServices(servicesRes.services);
@@ -151,28 +148,28 @@ export function Header() {
         setServiceCenters(normalizedCenters);
       } catch (e) {
         console.error('Error loading header data:', e);
-        
+
         // Fallback: Load departments from local data
         try {
           // Import the departments from the already imported local data
           if (departments && departments.length > 0) {
             console.log('Using local departments fallback', departments.length);
-            
+
             // Create basic sections from department names
             const uniqueWords = Array.from(new Set(departments.map(d => {
               const name = typeof d.name === 'string' ? d.name : getTranslation(d.name, locale);
               return name.split(" ")[0];
             })));
-            const fallbackSections = uniqueWords.slice(0, 6).map((word, idx) => ({ 
-              id: String(idx + 1), 
+            const fallbackSections = uniqueWords.slice(0, 6).map((word, idx) => ({
+              id: String(idx + 1),
               name: word
             }));
             setDeptSections(fallbackSections);
-            
+
             // Map departments with section associations
-            setDepartments(departments.map((d, idx) => ({ 
-              id: d.id, 
-              name: typeof d.name === 'string' ? d.name : getTranslation(d.name, locale), 
+            setDepartments(departments.map((d, idx) => ({
+              id: d.id,
+              name: typeof d.name === 'string' ? d.name : getTranslation(d.name, locale),
               section_id: String((idx % fallbackSections.length) + 1), // Distribute across sections
               icon: d.icon || "🏛️"
             })));
@@ -207,7 +204,7 @@ export function Header() {
           setDeptSections(lastResortSections);
           setDepartments(lastResortDepartments);
         }
-        
+
         // Keep services empty if API fails
         setServices([]);
         setServiceCenters([]);
@@ -312,9 +309,8 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-transform duration-300 ${
-        isVisible ? "translate-y-0" : "-translate-y-full"
-      }`}
+      className={`sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-full"
+        }`}
     >
       <div className="px-4 mx-auto  sm:px-4">
         <div className="flex h-20 sm:h-24 md:h-28 items-center justify-between gap-2">
@@ -324,7 +320,7 @@ export function Header() {
               alt="EPRI Logo"
               width={160}
               height={64}
-              className="h-12 sm:h-14 md:h-16 lg:h-18 xl:h-20 w-auto"
+              className="h-8 sm:h-12 md:h-14 lg:h-16 xl:h-16 w-auto"
               priority
             />
           </Link>
@@ -337,21 +333,19 @@ export function Header() {
               {/* About Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button 
-                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
-                      isActiveLink(`${locale === "ar" ? "/ar" : ""}/about`)
-                        ? "text-primary bg-primary/10 font-semibold"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                  <button
+                    className={`relative px-1 py-1 text-[12px] font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${isActiveLink(`${locale === "ar" ? "/ar" : ""}/about`)
+                      ? "text-primary bg-primary/10 font-semibold"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                   >
                     <span className="relative z-10">{t('nav.about')}</span>
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    <div 
-                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
-                        isActiveLink('/about')
-                          ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
-                      }`}
+                    <div
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${isActiveLink('/about')
+                        ? "bg-primary/15 opacity-100"
+                        : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
+                        }`}
                     ></div>
                     {isActiveLink('/about') && (
                       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
@@ -363,11 +357,10 @@ export function Header() {
                     const isActive = isActiveLink(link.href);
                     return (
                       <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
-                        <Link 
-                          href={link.href} 
-                          className={`w-full hover:text-primary transition-colors relative ${
-                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
-                          }`}
+                        <Link
+                          href={link.href}
+                          className={`w-full hover:text-primary transition-colors relative ${isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
+                            }`}
                         >
                           {link.label}
                         </Link>
@@ -380,21 +373,19 @@ export function Header() {
               {/* Departments Simple Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button 
-                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
-                      isActiveLink('/departments') || isActiveLink('/laboratories')
-                        ? "text-primary bg-primary/10 font-semibold"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                  <button
+                    className={`relative px-1 py-1 text-[12px] font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${isActiveLink('/departments') || isActiveLink('/laboratories')
+                      ? "text-primary bg-primary/10 font-semibold"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                   >
                     <span className="relative z-10">{t('nav.departments')}</span>
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    <div 
-                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
-                        isActiveLink('/departments') || isActiveLink('/laboratories')
-                          ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
-                      }`}
+                    <div
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${isActiveLink('/departments') || isActiveLink('/laboratories')
+                        ? "bg-primary/15 opacity-100"
+                        : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
+                        }`}
                     ></div>
                     {(isActiveLink('/departments') || isActiveLink('/laboratories')) && (
                       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
@@ -414,7 +405,7 @@ export function Header() {
                   {departments.length > 0 ? (
                     departments.map((dept) => (
                       <DropdownMenuItem key={dept.id} asChild>
-                        <Link 
+                        <Link
                           href={`/departments/${dept.id}`}
                           className="w-full"
                         >
@@ -435,23 +426,20 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
-                      isActiveLink('/service-centers')
-                        ? "text-primary bg-primary/10 font-semibold"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                    className={`relative px-1 py-1 text-[12px] font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${isActiveLink('/service-centers')
+                      ? "text-primary bg-primary/10 font-semibold"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                   >
                     <span className="relative z-10 leading-tight">
-                      <span className="block">{t('nav.serviceCenters').split('&')[0]}</span>
-                      <span className="block">{t('nav.serviceCenters').split('&')[1]}</span>
+                      <span className="block">{t('nav.serviceCenters')}</span>
                     </span>
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     <div
-                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
-                        isActiveLink('/service-centers')
-                          ? "bg-primary/15 opacity-100"
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
-                      }`}
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${isActiveLink('/service-centers')
+                        ? "bg-primary/15 opacity-100"
+                        : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
+                        }`}
                     ></div>
                     {isActiveLink('/service-centers') && (
                       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
@@ -474,7 +462,7 @@ export function Header() {
                         .filter(c => (c.type || 'center') === 'center')
                         .map((center) => (
                           <DropdownMenuItem key={center.id} asChild>
-                            <Link 
+                            <Link
                               href={`/service-centers/${center.slug}`}
                               className="w-full"
                             >
@@ -492,7 +480,7 @@ export function Header() {
                             .filter(c => c.type === 'unit')
                             .map((unit) => (
                               <DropdownMenuItem key={unit.id} asChild>
-                                <Link 
+                                <Link
                                   href={`/service-centers/${unit.slug}`}
                                   className="w-full"
                                 >
@@ -514,24 +502,21 @@ export function Header() {
               {/* News & Events Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button 
-                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
-                      isActiveLink('/news') || isActiveLink('/events')
-                        ? "text-primary bg-primary/10 font-semibold"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                  <button
+                    className={`relative px-1 py-1 text-[12px] font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${isActiveLink('/news') || isActiveLink('/events')
+                      ? "text-primary bg-primary/10 font-semibold"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                   >
                     <span className="relative z-10 leading-tight">
-                      <span className="block">{t('nav.newsEvents').split('&')[0]}</span>
-                      <span className="block">{t('nav.newsEvents').split('&')[1]}</span>
+                      <span className="block">{t('nav.newsEvents')}</span>
                     </span>
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    <div 
-                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
-                        isActiveLink('/news') || isActiveLink('/events')
-                          ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
-                      }`}
+                    <div
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${isActiveLink('/news') || isActiveLink('/events')
+                        ? "bg-primary/15 opacity-100"
+                        : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
+                        }`}
                     ></div>
                     {(isActiveLink('/news') || isActiveLink('/events')) && (
                       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
@@ -543,11 +528,10 @@ export function Header() {
                     const isActive = isActiveLink(link.href);
                     return (
                       <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
-                        <Link 
-                          href={link.href} 
-                          className={`w-full hover:text-primary transition-colors relative ${
-                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
-                          }`}
+                        <Link
+                          href={link.href}
+                          className={`w-full hover:text-primary transition-colors relative ${isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
+                            }`}
                         >
                           {link.label}
                         </Link>
@@ -560,11 +544,10 @@ export function Header() {
               {/* Training Center - Direct Link */}
               <Link
                 href="/training-center"
-                className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg hover:scale-105 ${
-                  isActiveLink('/training-center')
-                    ? "text-primary bg-primary/10 font-semibold"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5 hover:shadow-md"
-                }`}
+                className={`relative px-2 py-1 text-[12px] font-medium transition-all duration-200 rounded-lg hover:scale-105 ${isActiveLink('/training-center')
+                  ? "text-primary bg-primary/10 font-semibold"
+                  : "text-foreground/80 hover:text-primary hover:bg-primary/5 hover:shadow-md"
+                  }`}
               >
                 {t('nav.trainingCenter')}
                 {isActiveLink('/training-center') && (
@@ -575,23 +558,21 @@ export function Header() {
               {/* Library & Scientific Situation Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button 
-                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
-                      libraryLinks.some(link => isActiveLink(link.href)) || librarySubLinks.some(link => isActiveLink(link.href))
-                        ? "text-primary bg-primary/10 font-semibold"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                  <button
+                    className={`relative px-1 py-1 text-[12px] font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${libraryLinks.some(link => isActiveLink(link.href)) || librarySubLinks.some(link => isActiveLink(link.href))
+                      ? "text-primary bg-primary/10 font-semibold"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                   >
                     <span className="relative z-10 leading-tight">
                       {t('nav.library')}
                     </span>
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    <div 
-                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
-                        libraryLinks.some(link => isActiveLink(link.href)) || librarySubLinks.some(link => isActiveLink(link.href))
-                          ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
-                      }`}
+                    <div
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${libraryLinks.some(link => isActiveLink(link.href)) || librarySubLinks.some(link => isActiveLink(link.href))
+                        ? "bg-primary/15 opacity-100"
+                        : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
+                        }`}
                     ></div>
                     {(libraryLinks.some(link => isActiveLink(link.href)) || librarySubLinks.some(link => isActiveLink(link.href))) && (
                       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
@@ -603,11 +584,10 @@ export function Header() {
                     const isActive = isActiveLink(link.href);
                     return (
                       <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
-                        <Link 
-                          href={link.href} 
-                          className={`w-full hover:text-primary transition-colors relative ${
-                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
-                          }`}
+                        <Link
+                          href={link.href}
+                          className={`w-full hover:text-primary transition-colors relative ${isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
+                            }`}
                         >
                           {link.label}
                         </Link>
@@ -622,11 +602,10 @@ export function Header() {
                     const isActive = isActiveLink(link.href);
                     return (
                       <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
-                        <Link 
-                          href={link.href} 
-                          className={`w-full hover:text-primary transition-colors relative ${
-                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-6' : 'pl-8'
-                          }`}
+                        <Link
+                          href={link.href}
+                          className={`w-full hover:text-primary transition-colors relative ${isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-6' : 'pl-8'
+                            }`}
                         >
                           {link.label}
                         </Link>
@@ -640,11 +619,10 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
-                      isActiveLink('/innovation-and-entrepreneurship')
-                        ? "text-primary bg-primary/10 font-semibold"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                    className={`relative px-1 py-1 text-[12px] font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${isActiveLink('/innovation-and-entrepreneurship')
+                      ? "text-primary bg-primary/10 font-semibold"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                   >
                     <span className="relative z-10 leading-tight">
                       <span className="block">{t('nav.innovation.title').split(' ').slice(0, 2).join(' ')}</span>
@@ -652,11 +630,10 @@ export function Header() {
                     </span>
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     <div
-                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
-                        isActiveLink('/innovation-and-entrepreneurship')
-                          ? "bg-primary/15 opacity-100"
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
-                      }`}
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${isActiveLink('/innovation-and-entrepreneurship')
+                        ? "bg-primary/15 opacity-100"
+                        : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
+                        }`}
                     ></div>
                     {isActiveLink('/innovation-and-entrepreneurship') && (
                       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
@@ -714,14 +691,12 @@ export function Header() {
               {/* EJP Journal - Direct Link */}
               <Link
                 href="/ejp-journal"
-                className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg hover:scale-105 ${
-                  isActiveLink('/ejp-journal')
-                    ? "text-primary bg-primary/10 font-semibold"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5 hover:shadow-md"
-                }`}
+                className={`relative px-2 py-1 text-[12px] font-medium transition-all duration-200 rounded-lg hover:scale-105 ${isActiveLink('/ejp-journal')
+                  ? "text-primary bg-primary/10 font-semibold"
+                  : "text-foreground/80 hover:text-primary hover:bg-primary/5 hover:shadow-md"
+                  }`}
               >
-                <span className="block">{t('nav.ejpJournal').split(' ')[0]}</span>
-                <span className="block">{t('nav.ejpJournal').split(' ').slice(1).join(' ')}</span>
+                <span className="block">{t('nav.ejpJournal')}</span>
                 {isActiveLink('/ejp-journal') && (
                   <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
                 )}
@@ -730,21 +705,19 @@ export function Header() {
               {/* More Dropdown - Last menu item */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button 
-                    className={`relative px-4 py-2 text-base font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${
-                    moreLinks.some(link => isActiveLink(link.href))
+                  <button
+                    className={`relative px-2 py-1 text-[12px] font-medium transition-all duration-200 rounded-lg group flex items-center gap-1 hover:scale-105 ${moreLinks.some(link => isActiveLink(link.href))
                       ? "text-primary bg-primary/10 font-semibold"
                       : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                      }`}
                   >
                     <span className="relative z-10">{t('nav.more')}</span>
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    <div 
-                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${
-                        moreLinks.some(link => isActiveLink(link.href))
-                          ? "bg-primary/15 opacity-100" 
-                          : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
-                      }`}
+                    <div
+                      className={`absolute inset-0 rounded-lg transition-all duration-200 ${moreLinks.some(link => isActiveLink(link.href))
+                        ? "bg-primary/15 opacity-100"
+                        : "bg-primary/10 opacity-0 group-hover:opacity-100 group-hover:shadow-md"
+                        }`}
                     ></div>
                     {moreLinks.some(link => isActiveLink(link.href)) && (
                       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full"></div>
@@ -756,11 +729,10 @@ export function Header() {
                     const isActive = isActiveLink(link.href);
                     return (
                       <DropdownMenuItem key={link.href} asChild className="hover:bg-primary/10 transition-colors">
-                        <Link 
-                          href={link.href} 
-                          className={`w-full hover:text-primary transition-colors relative ${
-                            isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
-                          }`}
+                        <Link
+                          href={link.href}
+                          className={`w-full hover:text-primary transition-colors relative ${isActive ? 'text-primary font-semibold bg-primary/10 border-l-2 border-primary pl-3' : 'pl-4'
+                            }`}
                         >
                           {link.label}
                         </Link>
@@ -778,7 +750,7 @@ export function Header() {
             {isLoggedIn ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="hover:bg-primary/5 px-3 xl:px-4 py-2 rounded-lg transition-all duration-200 group text-sm">
+                  <Button variant="ghost" className="hover:bg-primary/5 px-2 xl:px-4 py-1 rounded-lg transition-all duration-200 group text-sm">
                     <User className="h-4 w-4 mr-1 xl:mr-2" />
                     <span className="hidden xl:inline">{t('nav.myAccount')}</span>
                     <span className="xl:hidden">{t('nav.account')}</span>
@@ -815,12 +787,12 @@ export function Header() {
               </DropdownMenu>
             ) : (
               <>
-                <Button variant="ghost" asChild className="hover:bg-primary/5 px-3 xl:px-4 py-2 rounded-lg transition-all duration-200 text-sm">
+                <Button variant="ghost" asChild className="hover:bg-primary/5 px-2 xl:px-4 py-1 rounded-lg transition-all duration-200 text-[12px]">
                   <Link href="/login">{t('common.login')}</Link>
                 </Button>
-                <Button asChild className="bg-primary hover:bg-primary/90 px-3 xl:px-5 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-sm">
+                {/* <Button asChild className="bg-primary hover:bg-primary/90 px-3 xl:px-5 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-sm">
                   <Link href="/register">{t('nav.getStarted')}</Link>
-                </Button>
+                </Button> */}
               </>
             )}
           </div>
@@ -855,11 +827,10 @@ export function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                      isActive
-                        ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {link.label}
@@ -869,7 +840,7 @@ export function Header() {
 
 
               {/* News & Events Section */}
-              <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="py-1 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {t('nav.newsEvents')}
               </div>
               {newsLinks.map((link) => {
@@ -878,11 +849,10 @@ export function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                      isActive
-                        ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {link.label}
@@ -893,11 +863,10 @@ export function Header() {
               {/* Training Center - Mobile */}
               <Link
                 href="/training-center"
-                className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                  isActiveLink('/training-center')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                }`}
+                className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/training-center')
+                  ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                  : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {t('nav.trainingCenter')}
@@ -906,11 +875,10 @@ export function Header() {
               {/* EJP Journal - Mobile */}
               <Link
                 href="/ejp-journal"
-                className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                  isActiveLink('/ejp-journal')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                }`}
+                className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/ejp-journal')
+                  ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                  : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {t('nav.ejpJournal')}
@@ -923,88 +891,80 @@ export function Header() {
                 </div>
                 <Link
                   href="/innovation-and-entrepreneurship"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
-                    isActiveLink('/innovation-and-entrepreneurship')
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.innovation.overview')}
                 </Link>
                 <Link
                   href="/innovation-and-entrepreneurship/technology-transfer-tto"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
-                    isActiveLink('/innovation-and-entrepreneurship/technology-transfer-tto')
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/technology-transfer-tto')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.innovation.technologyTransferTTO')}
                 </Link>
                 <Link
                   href="/innovation-and-entrepreneurship/grant-international-cooperation-gico"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
-                    isActiveLink('/innovation-and-entrepreneurship/grant-international-cooperation-gico')
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/grant-international-cooperation-gico')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.innovation.grantInternationalCooperationGICO')}
                 </Link>
                 <Link
                   href="/innovation-and-entrepreneurship/technology-innovation-support-tisc"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
-                    isActiveLink('/innovation-and-entrepreneurship/technology-innovation-support-tisc')
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/technology-innovation-support-tisc')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.innovation.technologyInnovationSupportTISC')}
                 </Link>
                 <Link
                   href="/innovation-and-entrepreneurship/ip-management"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
-                    isActiveLink('/innovation-and-entrepreneurship/ip-management')
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/ip-management')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.innovation.ipManagement')}
                 </Link>
                 <Link
                   href="/innovation-and-entrepreneurship/e-club"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
-                    isActiveLink('/innovation-and-entrepreneurship/e-club')
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/e-club')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.innovation.eClub')}
                 </Link>
                 <Link
                   href="/innovation-and-entrepreneurship/incubators-startups"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
-                    isActiveLink('/innovation-and-entrepreneurship/incubators-startups')
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/incubators-startups')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.innovation.incubatorsStartups')}
                 </Link>
                 <Link
                   href="/innovation-and-entrepreneurship/patent"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${
-                    isActiveLink('/innovation-and-entrepreneurship/patent')
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/patent')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.innovation.patent')}
@@ -1012,7 +972,7 @@ export function Header() {
               </div>
 
               {/* Library & Scientific Situation Section */}
-              <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="py-1 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {t('nav.library')}
               </div>
               {libraryLinks.map((link) => {
@@ -1021,11 +981,10 @@ export function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                      isActive
-                        ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {link.label}
@@ -1041,11 +1000,10 @@ export function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`py-2 px-12 text-sm font-medium transition-all duration-200 rounded-lg ${
-                      isActive
-                        ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                    className={`py-2 px-12 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {link.label}
@@ -1054,7 +1012,7 @@ export function Header() {
               })}
 
               {/* More Section */}
-              <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="py-1 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 More
               </div>
               {moreLinks.map((link) => {
@@ -1063,18 +1021,17 @@ export function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                      isActive
-                        ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {link.label}
                   </Link>
                 );
               })}
-              
+
               {/* Mobile Departments Section */}
               <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Departments
@@ -1083,17 +1040,16 @@ export function Header() {
                 deptSections.map((section) => {
                   const sectionDepartments = departments.filter(dept => dept.section_id === section.id);
                   const isExpanded = expandedMobileSection === section.id;
-                  
+
                   return (
                     <div key={section.id} className="space-y-1">
                       <div className="flex items-center justify-between">
                         <Link
                           href={`/departments?sectionId=${section.id}`}
-                          className={`flex-1 block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                            isActiveLink('/departments')
-                              ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                              : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                          }`}
+                          className={`flex-1 block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/departments')
+                            ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                            : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           {typeof section.name === 'string' ? section.name : getTranslation(section.name, locale)}
@@ -1101,11 +1057,11 @@ export function Header() {
                         {sectionDepartments.length > 0 && (
                           <button
                             onClick={() => setExpandedMobileSection(isExpanded ? null : section.id)}
-                            className="px-4 py-2 text-muted-foreground hover:text-primary transition-colors"
+                            className="px-2 py-1 text-muted-foreground hover:text-primary transition-colors"
                             aria-label={isExpanded ? "Collapse" : "Expand"}
                           >
-                            <ChevronDown 
-                              className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                            <ChevronDown
+                              className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                             />
                           </button>
                         )}
@@ -1116,11 +1072,10 @@ export function Header() {
                             <div key={dept.id} className="space-y-1">
                               <Link
                                 href={`/departments?sectionId=${section.id}&departmentId=${dept.id}`}
-                                className={`block py-1.5 px-4 text-xs font-medium transition-colors ${
-                                  isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}`)
-                                    ? "text-primary font-semibold"
-                                    : "text-foreground hover:text-primary"
-                                }`}
+                                className={`block py-1.5 px-4 text-xs font-medium transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}`)
+                                  ? "text-primary font-semibold"
+                                  : "text-foreground hover:text-primary"
+                                  }`}
                                 onClick={() => setMobileMenuOpen(false)}
                               >
                                 {dept.icon && <span className="mr-2">{dept.icon}</span>}
@@ -1129,44 +1084,40 @@ export function Header() {
                               <div className="pl-6 space-y-1">
                                 <Link
                                   href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=research-areas`}
-                                  className={`block py-1 px-4 text-xs transition-colors ${
-                                    isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=research-areas`)
-                                      ? "text-primary font-semibold"
-                                      : "text-muted-foreground hover:text-primary"
-                                  }`}
+                                  className={`block py-1 px-4 text-xs transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=research-areas`)
+                                    ? "text-primary font-semibold"
+                                    : "text-muted-foreground hover:text-primary"
+                                    }`}
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
                                   Research Areas
                                 </Link>
                                 <Link
                                   href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=projects`}
-                                  className={`block py-1 px-4 text-xs transition-colors ${
-                                    isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=projects`)
-                                      ? "text-primary font-semibold"
-                                      : "text-muted-foreground hover:text-primary"
-                                  }`}
+                                  className={`block py-1 px-4 text-xs transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=projects`)
+                                    ? "text-primary font-semibold"
+                                    : "text-muted-foreground hover:text-primary"
+                                    }`}
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
                                   Projects
                                 </Link>
                                 <Link
                                   href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=laboratories`}
-                                  className={`block py-1 px-4 text-xs transition-colors ${
-                                    isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=laboratories`)
-                                      ? "text-primary font-semibold"
-                                      : "text-muted-foreground hover:text-primary"
-                                  }`}
+                                  className={`block py-1 px-4 text-xs transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=laboratories`)
+                                    ? "text-primary font-semibold"
+                                    : "text-muted-foreground hover:text-primary"
+                                    }`}
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
                                   Laboratories
                                 </Link>
                                 <Link
                                   href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=staff`}
-                                  className={`block py-1 px-4 text-xs transition-colors ${
-                                    isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=staff`)
-                                      ? "text-primary font-semibold"
-                                      : "text-muted-foreground hover:text-primary"
-                                  }`}
+                                  className={`block py-1 px-4 text-xs transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=staff`)
+                                    ? "text-primary font-semibold"
+                                    : "text-muted-foreground hover:text-primary"
+                                    }`}
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
                                   Staff
@@ -1175,13 +1126,13 @@ export function Header() {
                             </div>
                           ))}
                           <div className="pt-2">
-                            <Button 
-                              asChild 
-                              size="sm" 
+                            <Button
+                              asChild
+                              size="sm"
                               variant="outline"
                               className="w-full text-xs"
                             >
-                              <Link 
+                              <Link
                                 href={`/departments?sectionId=${section.id}`}
                                 onClick={() => setMobileMenuOpen(false)}
                               >
@@ -1197,22 +1148,21 @@ export function Header() {
               ) : (
                 <Link
                   href="/departments"
-                  className={`py-3 px-4 text-sm font-medium transition-all duration-200 rounded-lg ${
-                    isActiveLink('/departments') || isActiveLink('/laboratories')
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
+                  className={`py-3 px-4 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/departments') || isActiveLink('/laboratories')
+                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Departments
                 </Link>
               )}
-              
+
               {/* Mobile Centers & Units Section */}
               <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Centers & Units
               </div>
-              
+
               {/* Centers */}
               <div className="mb-2">
                 <div className="py-2 px-4 text-xs font-semibold text-muted-foreground">
@@ -1225,11 +1175,10 @@ export function Header() {
                     <div key={center.id} className="space-y-1">
                       <Link
                         href={`/service-centers/${center.slug}`}
-                        className={`block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                          isActiveLink(`/service-centers/${center.slug}`)
-                            ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                            : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                        }`}
+                        className={`block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink(`/service-centers/${center.slug}`)
+                          ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                          : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                          }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         {typeof center.name === 'string' ? center.name : getTranslation(center.name, locale)}
@@ -1237,99 +1186,90 @@ export function Header() {
                       <div className="pl-12 space-y-1">
                         <Link
                           href={`/service-centers/${center.slug}#overview`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            pathname.includes(`/service-centers/${center.slug}`) && (currentHash === '#overview' || (!currentHash && pathname === `/service-centers/${center.slug}`))
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${pathname.includes(`/service-centers/${center.slug}`) && (currentHash === '#overview' || (!currentHash && pathname === `/service-centers/${center.slug}`))
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Overview
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#lab-methodology`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#lab-methodology'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#lab-methodology'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Lab Methodology & Services
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#events`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#events'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#events'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Events
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#training`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#training'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#training'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Training & E-Learning
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#products`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#products'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#products'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Products
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#equipment`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#equipment'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#equipment'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Equipment List
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#staff`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#staff'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#staff'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Staff
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#work-volume`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#work-volume'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#work-volume'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Work Volume & Company Activity
                         </Link>
                         <Link
                           href={`/service-centers/${center.slug}#future-prospects`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#future-prospects'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#future-prospects'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Future Prospects
@@ -1366,11 +1306,10 @@ export function Header() {
                     <div key={unit.id} className="space-y-1">
                       <Link
                         href={`/service-centers/${unit.slug}`}
-                        className={`block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                          isActiveLink(`/service-centers/${unit.slug}`)
-                            ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                            : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                        }`}
+                        className={`block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink(`/service-centers/${unit.slug}`)
+                          ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                          : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                          }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         {typeof unit.name === 'string' ? unit.name : getTranslation(unit.name, locale)}
@@ -1378,99 +1317,90 @@ export function Header() {
                       <div className="pl-12 space-y-1">
                         <Link
                           href={`/service-centers/${unit.slug}#overview`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            pathname.includes(`/service-centers/${unit.slug}`) && (currentHash === '#overview' || (!currentHash && pathname === `/service-centers/${unit.slug}`))
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${pathname.includes(`/service-centers/${unit.slug}`) && (currentHash === '#overview' || (!currentHash && pathname === `/service-centers/${unit.slug}`))
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Overview
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#lab-methodology`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#lab-methodology'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#lab-methodology'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Lab Methodology & Services
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#events`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#events'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#events'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Events
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#training`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#training'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#training'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Training & E-Learning
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#products`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#products'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#products'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Products
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#equipment`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#equipment'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#equipment'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Equipment List
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#staff`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#staff'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#staff'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Staff
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#work-volume`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#work-volume'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#work-volume'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Work Volume & Company Activity
                         </Link>
                         <Link
                           href={`/service-centers/${unit.slug}#future-prospects`}
-                          className={`block py-1 px-4 text-xs transition-colors ${
-                            currentHash === '#future-prospects'
-                              ? "text-primary font-semibold"
-                              : "text-muted-foreground hover:text-primary"
-                          }`}
+                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#future-prospects'
+                            ? "text-primary font-semibold"
+                            : "text-muted-foreground hover:text-primary"
+                            }`}
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Future Prospects
@@ -1494,15 +1424,14 @@ export function Header() {
                   </div>
                 )}
               </div>
-              
+
               {/* Mobile Services Link */}
               <Link
                 href="/services"
-                className={`py-3 px-4 text-sm font-medium transition-all duration-200 rounded-lg ${
-                  isActiveLink('/services')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                }`}
+                className={`py-3 px-4 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/services')
+                  ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                  : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Services
@@ -1518,11 +1447,10 @@ export function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                      isActive
-                        ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {link.label}
@@ -1540,11 +1468,10 @@ export function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${
-                      isActive
-                        ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
+                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
+                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {link.label}

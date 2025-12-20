@@ -12,8 +12,13 @@ import { Clock, DollarSign, Search, Wrench, User } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { Service, SERVICE_CATEGORIES } from "@/lib/services"
 import { serviceCategories } from "@/lib/data" // Keep for fallback
+import { usePageContent } from "@/hooks/use-page-content"
 
 export default function ServicesPage() {
+  const { title, subtitle, description } = usePageContent({ 
+    pageKey: 'services', 
+    sectionKey: 'overview' 
+  })
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -61,9 +66,11 @@ export default function ServicesPage() {
 
       <Section className="bg-primary text-primary-foreground">
         <div className="text-center max-w-3xl mx-auto">
-          <h1 className="font-serif text-5xl font-bold mb-6">Our Services</h1>
+          <h1 className="font-serif text-5xl font-bold mb-6">
+            {title || "Our Services"}
+          </h1>
           <p className="text-xl text-primary-foreground/90">
-            Professional petroleum research, testing, and consulting services backed by decades of expertise
+            {description || "Professional petroleum research, testing, and consulting services backed by decades of expertise"}
           </p>
         </div>
       </Section>

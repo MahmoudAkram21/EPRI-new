@@ -13,8 +13,8 @@ import { Globe } from 'lucide-react'
 import { routing } from '@/i18n/routing'
 
 const languageNames: Record<Locale, string> = {
-  en: 'English',
-  ar: 'العربية'
+  en: 'EN',
+  ar: 'AR'
 }
 const locales = routing.locales as unknown as Locale[]
 export function LanguageSwitcher() {
@@ -36,9 +36,9 @@ export function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
+        <Button variant="ghost" size="icon" className="gap-2 text-[10px]">
           <Globe className="h-4 w-4" />
-          <span className="hidden sm:inline">{languageNames[locale]}</span>
+          <span className="hidden sm:inline">{languageNames[locale]} </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

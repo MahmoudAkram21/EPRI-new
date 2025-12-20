@@ -1,3 +1,5 @@
+"use client"
+
 import { PageContainer } from "@/components/page-container"
 import { Section } from "@/components/section"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,8 +17,13 @@ import {
   CheckCircle2
 } from "lucide-react"
 import { AnimatedSection } from "@/components/animated-section"
+import { usePageContent } from "@/hooks/use-page-content"
 
 export default function AboutPage() {
+  const { title, subtitle, description, loading } = usePageContent({ 
+    pageKey: 'about', 
+    sectionKey: 'overview' 
+  })
   const aboutSections = [
     {
       href: "/about/overview",
@@ -89,15 +96,15 @@ export default function AboutPage() {
         <div className="relative z-10 text-center text-white">
           <div className="max-w-4xl mx-auto">
             <Badge variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors mb-6">
-              About EPRI
+              {subtitle || "About EPRI"}
             </Badge>
             
             <h1 className="font-serif text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent leading-tight">
-              About Us
+              {title || "About Us"}
             </h1>
             
             <p className="text-lg md:text-xl text-white/90 mb-8 leading-relaxed font-light max-w-3xl mx-auto">
-              Discover the Egyptian Petroleum Research Institute - our history, leadership, achievements, and partnerships that drive excellence in petroleum research and education.
+              {description || "Discover the Egyptian Petroleum Research Institute - our history, leadership, achievements, and partnerships that drive excellence in petroleum research and education."}
             </p>
           </div>
         </div>

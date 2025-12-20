@@ -15,7 +15,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-8">
           <div>
-            <Image src="/logo.png" alt="EPRI Logo" width={120} height={48} className="h-12 w-auto mb-4" />
+            <Image src="/logo.png" alt="EPRI Logo" width={200} height={64} className="h-12 w-auto mb-4" />
             <p className="text-sm text-muted-foreground leading-relaxed mb-4 text-justify">
               {t('footer.description')}
             </p>
@@ -26,9 +26,9 @@ export function Footer() {
             <h4 className="font-semibold mb-4">{t('footer.quickLinks')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link 
-                  href="https://www.webofscience.com/" 
-                  target="_blank" 
+                <Link
+                  href="https://www.webofscience.com/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -36,9 +36,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="https://scholar.google.com/" 
-                  target="_blank" 
+                <Link
+                  href="https://scholar.google.com/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -46,9 +46,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="https://www.scopus.com/home.uri" 
-                  target="_blank" 
+                <Link
+                  href="https://www.scopus.com/home.uri"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -56,9 +56,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="https://www.civilejournal.org/index.php/cej" 
-                  target="_blank" 
+                <Link
+                  href="https://www.civilejournal.org/index.php/cej"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -66,9 +66,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="https://www.ekb.eg/" 
-                  target="_blank" 
+                <Link
+                  href="https://www.ekb.eg/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -76,9 +76,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="https://www.sciencedirect.com/" 
-                  target="_blank" 
+                <Link
+                  href="https://www.sciencedirect.com/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -86,9 +86,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="https://www.researchgate.net/" 
-                  target="_blank" 
+                <Link
+                  href="https://www.researchgate.net/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -96,9 +96,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="https://link.springer.com/" 
-                  target="_blank" 
+                <Link
+                  href="https://link.springer.com/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -114,9 +114,9 @@ export function Footer() {
             <h4 className="font-semibold mb-4">{t('footer.relatedLinks')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link 
-                  href="https://mohesr.gov.eg/" 
-                  target="_blank" 
+                <Link
+                  href="https://mohesr.gov.eg/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -124,9 +124,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="http://www.crci.sci.eg/" 
-                  target="_blank" 
+                <Link
+                  href="http://www.crci.sci.eg/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -134,9 +134,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="https://www.petroleum.gov.eg/en/Pages/HomePage.aspx" 
-                  target="_blank" 
+                <Link
+                  href="https://www.petroleum.gov.eg/en/Pages/HomePage.aspx"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -144,9 +144,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="http://www.asrt.sci.eg/" 
-                  target="_blank" 
+                <Link
+                  href="http://www.asrt.sci.eg/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -179,9 +179,9 @@ export function Footer() {
               </li>
               <li className="flex items-start gap-3">
                 <MessageCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                <a 
-                  href="https://wa.me/201201123333" 
-                  target="_blank" 
+                <a
+                  href="https://wa.me/201201123333"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -190,8 +190,8 @@ export function Footer() {
               </li>
               <li className="flex items-start gap-3">
                 <Mail className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                <a 
-                  href="mailto:research@epri.sci.eg" 
+                <a
+                  href="mailto:research@epri.sci.eg"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   research@epri.sci.eg
@@ -234,7 +234,7 @@ export function Footer() {
                 <div className="text-[10px] md:text-xs font-semibold">9001:2015</div>
               </div>
             </div>
-            
+
             {/* ISO 45001:2018 */}
             <div className="flex flex-col items-center">
               <div className="relative w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex flex-col items-center justify-center text-white shadow-lg hover:scale-105 transition-transform duration-200">
@@ -311,9 +311,9 @@ export function Footer() {
             {/* Copyright - Bottom Right */}
             <p className="text-sm text-muted-foreground text-center md:text-right">
               {t('footer.copyright')} © Designed by{" "}
-              <a 
-                href="https://www.qeematech.net/" 
-                target="_blank" 
+              <a
+                href="https://www.qeematech.net/"
+                target="_blank"
                 rel="dofollow"
                 className="hover:text-primary transition-colors"
               >
