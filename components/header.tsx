@@ -247,7 +247,6 @@ export function Header() {
   const moreLinks = [
     { href: "/products", label: t('nav.products') },
     { href: "/equipments", label: "Scientific Equipment" },
-    { href: "/news", label: "Research News" },
     { href: "/contact", label: t('nav.contact') },
   ];
 

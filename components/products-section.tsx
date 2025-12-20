@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { apiClient } from "@/lib/api"
 import { useProductWishlist } from "@/hooks/use-product-wishlist"
+import { useUser } from "@/contexts/user-context"
+import { useToast } from "@/hooks/use-toast"
+import { LoginModal } from "@/components/login-modal"
 import useEmblaCarousel from "embla-carousel-react"
 import Autoplay from "embla-carousel-autoplay"
 
@@ -265,13 +268,30 @@ export function ProductsSection() {
 }
 
 function ProductCardWithWishlist({ product }: { product: Product }) {
+  const { isLoggedIn } = useUser()
   const { isInWishlist, toggleProduct } = useProductWishlist()
+  const { toast } = useToast()
+  const [showLoginModal, setShowLoginModal] = useState(false)
   const inWishlist = isInWishlist(product.id)
 
   const handleHeartClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    if (!isLoggedIn) {
+      setShowLoginModal(true)
+      return
+    }
+    
     toggleProduct(product.id)
+  }
+
+  const handleLoginSuccess = () => {
+    toggleProduct(product.id)
+    toast({
+      title: "Added to Wishlist",
+      description: `"${product.name}" has been added to your wishlist`,
+    })
   }
 
   const productImage = product.image || (product.images && product.images.length > 0 ? product.images[0] : null) || product.centerImage || "/placeholder.svg"
@@ -328,6 +348,11 @@ function ProductCardWithWishlist({ product }: { product: Product }) {
               }`}
             />
           </button>
+          <LoginModal 
+            open={showLoginModal} 
+            onOpenChange={setShowLoginModal}
+            onSuccess={handleLoginSuccess}
+          />
         </div>
 
         {/* Product Info */}

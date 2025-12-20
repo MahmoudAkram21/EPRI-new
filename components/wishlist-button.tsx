@@ -1,13 +1,14 @@
 "use client"
 
 import type React from "react"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/contexts/user-context"
-import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { Heart } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { LoginModal } from "@/components/login-modal"
 
 interface WishlistButtonProps {
   courseId: string
@@ -27,8 +28,8 @@ export function WishlistButton({
   showText = true,
 }: WishlistButtonProps) {
   const { isLoggedIn, isInWishlist, toggleWishlist, isEnrolled } = useUser()
-  const router = useRouter()
   const { toast } = useToast()
+  const [showLoginModal, setShowLoginModal] = useState(false)
 
   const inWishlist = isInWishlist(courseId)
   const enrolled = isEnrolled(courseId)
@@ -43,7 +44,7 @@ export function WishlistButton({
     e.stopPropagation()
 
     if (!isLoggedIn) {
-      router.push("/login")
+      setShowLoginModal(true)
       return
     }
 
@@ -56,10 +57,26 @@ export function WishlistButton({
     })
   }
 
+  const handleLoginSuccess = () => {
+    // After successful login, add to wishlist
+    toggleWishlist(courseId)
+    toast({
+      title: "Added to Wishlist",
+      description: `"${courseTitle}" has been added to your wishlist`,
+    })
+  }
+
   return (
-    <Button variant={variant} size={size} className={cn("bg-transparent", className)} onClick={handleToggleWishlist}>
-      <Heart className={cn("h-4 w-4", showText && "mr-2", inWishlist && "fill-red-500 text-red-500")} />
-      {showText && (inWishlist ? "Remove from Wishlist" : "Add to Wishlist")}
-    </Button>
+    <>
+      <Button variant={variant} size={size} className={cn("bg-transparent", className)} onClick={handleToggleWishlist}>
+        <Heart className={cn("h-4 w-4", showText && "mr-2", inWishlist && "fill-red-500 text-red-500")} />
+        {showText && (inWishlist ? "Remove from Wishlist" : "Add to Wishlist")}
+      </Button>
+      <LoginModal 
+        open={showLoginModal} 
+        onOpenChange={setShowLoginModal}
+        onSuccess={handleLoginSuccess}
+      />
+    </>
   )
 }

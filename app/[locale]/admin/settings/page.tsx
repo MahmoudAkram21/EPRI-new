@@ -37,7 +37,43 @@ import {
   Contact,
   ShoppingBag,
   Microscope,
-  Sparkles
+  Sparkles,
+  Award,
+  CheckCircle2,
+  TrendingUp,
+  Shield,
+  Target,
+  Zap,
+  FileCheck,
+  Star,
+  Heart,
+  Lightbulb,
+  Rocket,
+  Flame,
+  Gem,
+  Crown,
+  Trophy,
+  Medal,
+  Award as BadgeIcon, // Using Award as Badge icon
+  CheckSquare,
+  ThumbsUp,
+  Eye,
+  Brain,
+  Cpu,
+  Zap as ZapIcon,
+  Activity,
+  BarChart3,
+  TrendingDown,
+  ArrowUp,
+  ArrowDown,
+  ArrowRight as ArrowRightIcon,
+  ArrowLeft,
+  ChevronRight,
+  ChevronLeft,
+  Circle,
+  Square,
+  Triangle,
+  Hexagon
 } from 'lucide-react';
 import {
   Select,
@@ -99,6 +135,258 @@ const HOME_SECTIONS = [
   { key: 'cta', icon: LinkIcon },
   { key: 'connect', icon: Globe },
 ];
+
+// Icon options for Why Choose features
+const FEATURE_ICONS = [
+  { value: 'Award', label: 'Award', icon: Award },
+  { value: 'Users', label: 'Users', icon: Users },
+  { value: 'TrendingUp', label: 'Trending Up', icon: TrendingUp },
+  { value: 'Shield', label: 'Shield', icon: Shield },
+  { value: 'Target', label: 'Target', icon: Target },
+  { value: 'Zap', label: 'Zap', icon: Zap },
+  { value: 'CheckCircle2', label: 'Check Circle', icon: CheckCircle2 },
+  { value: 'FileCheck', label: 'File Check', icon: FileCheck },
+  { value: 'Sparkles', label: 'Sparkles', icon: Sparkles },
+  { value: 'Star', label: 'Star', icon: Star },
+  { value: 'Heart', label: 'Heart', icon: Heart },
+  { value: 'Lightbulb', label: 'Lightbulb', icon: Lightbulb },
+  { value: 'Rocket', label: 'Rocket', icon: Rocket },
+  { value: 'Flame', label: 'Flame', icon: Flame },
+  { value: 'Gem', label: 'Gem', icon: Gem },
+  { value: 'Crown', label: 'Crown', icon: Crown },
+  { value: 'Trophy', label: 'Trophy', icon: Trophy },
+  { value: 'Medal', label: 'Medal', icon: Medal },
+  { value: 'Badge', label: 'Badge', icon: BadgeIcon },
+  { value: 'CheckSquare', label: 'Check Square', icon: CheckSquare },
+  { value: 'ThumbsUp', label: 'Thumbs Up', icon: ThumbsUp },
+  { value: 'Eye', label: 'Eye', icon: Eye },
+  { value: 'Brain', label: 'Brain', icon: Brain },
+  { value: 'Cpu', label: 'CPU', icon: Cpu },
+  { value: 'Activity', label: 'Activity', icon: Activity },
+  { value: 'BarChart3', label: 'Bar Chart', icon: BarChart3 },
+];
+
+// Color gradient options
+const COLOR_OPTIONS = [
+  { value: 'from-yellow-500 to-orange-500', label: 'Yellow to Orange' },
+  { value: 'from-blue-500 to-cyan-500', label: 'Blue to Cyan' },
+  { value: 'from-purple-500 to-pink-500', label: 'Purple to Pink' },
+  { value: 'from-green-500 to-emerald-500', label: 'Green to Emerald' },
+  { value: 'from-red-500 to-rose-500', label: 'Red to Rose' },
+  { value: 'from-indigo-500 to-violet-500', label: 'Indigo to Violet' },
+  { value: 'from-teal-500 to-cyan-500', label: 'Teal to Cyan' },
+  { value: 'from-pink-500 to-rose-500', label: 'Pink to Rose' },
+  { value: 'from-orange-500 to-red-500', label: 'Orange to Red' },
+  { value: 'from-blue-600 to-indigo-600', label: 'Blue to Indigo' },
+];
+
+// Why Choose Feature Editor Component
+function WhyChooseFeatureEditor({ content, onChange }: { content: HomePageContent; onChange: (content: any) => void }) {
+  const features = (content.content?.features || []) as Array<{
+    icon?: string;
+    title?: { en: string; ar: string };
+    description?: { en: string; ar: string };
+    color?: string;
+    link?: string;
+  }>;
+
+  const updateFeature = (index: number, field: string, lang: 'en' | 'ar' | null, value: any) => {
+    const newFeatures = [...features];
+    if (!newFeatures[index]) {
+      newFeatures[index] = { icon: 'Award', title: { en: '', ar: '' }, description: { en: '', ar: '' }, color: 'from-blue-500 to-cyan-500', link: '' };
+    }
+    
+    if (lang) {
+      newFeatures[index] = {
+        ...newFeatures[index],
+        [field]: {
+          ...(newFeatures[index][field as keyof typeof newFeatures[0]] as any || { en: '', ar: '' }),
+          [lang]: value
+        }
+      };
+    } else {
+      newFeatures[index] = {
+        ...newFeatures[index],
+        [field]: value
+      };
+    }
+    
+    onChange({ ...content.content, features: newFeatures });
+  };
+
+  const addFeature = () => {
+    const newFeatures = [...features, {
+      icon: 'Award',
+      title: { en: '', ar: '' },
+      description: { en: '', ar: '' },
+      color: 'from-blue-500 to-cyan-500',
+      link: ''
+    }];
+    onChange({ ...content.content, features: newFeatures });
+  };
+
+  const removeFeature = (index: number) => {
+    const newFeatures = features.filter((_, i) => i !== index);
+    onChange({ ...content.content, features: newFeatures });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label>Features</Label>
+        <Button type="button" size="sm" onClick={addFeature}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Feature
+        </Button>
+      </div>
+      
+      {features.map((feature, index) => {
+        const IconComponent = FEATURE_ICONS.find(ic => ic.value === feature.icon)?.icon || Award;
+        return (
+          <Card key={index} className="border-2">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Feature {index + 1}</CardTitle>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFeature(index)}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Icon Selection */}
+              <div>
+                <Label>Icon</Label>
+                <Select
+                  value={feature.icon || 'Award'}
+                  onValueChange={(value) => updateFeature(index, 'icon', null, value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue>
+                      <div className="flex items-center gap-2">
+                        <IconComponent className="h-4 w-4" />
+                        {FEATURE_ICONS.find(ic => ic.value === feature.icon)?.label || 'Award'}
+                      </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FEATURE_ICONS.map((icon) => {
+                      const Icon = icon.icon;
+                      return (
+                        <SelectItem key={icon.value} value={icon.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4" />
+                            {icon.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Title */}
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">English</Label>
+                    <Input
+                      value={feature.title?.en || ''}
+                      onChange={(e) => updateFeature(index, 'title', 'en', e.target.value)}
+                      placeholder="English title"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Arabic</Label>
+                    <Input
+                      value={feature.title?.ar || ''}
+                      onChange={(e) => updateFeature(index, 'title', 'ar', e.target.value)}
+                      placeholder="Arabic title"
+                      dir="rtl"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">English</Label>
+                    <Textarea
+                      value={feature.description?.en || ''}
+                      onChange={(e) => updateFeature(index, 'description', 'en', e.target.value)}
+                      placeholder="English description"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Arabic</Label>
+                    <Textarea
+                      value={feature.description?.ar || ''}
+                      onChange={(e) => updateFeature(index, 'description', 'ar', e.target.value)}
+                      placeholder="Arabic description"
+                      rows={3}
+                      dir="rtl"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Color Gradient */}
+              <div>
+                <Label>Color Gradient</Label>
+                <Select
+                  value={feature.color || 'from-blue-500 to-cyan-500'}
+                  onValueChange={(value) => updateFeature(index, 'color', null, value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COLOR_OPTIONS.map((color) => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded bg-gradient-to-r ${color.value}`} />
+                          {color.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Link */}
+              <div>
+                <Label>Link (Optional)</Label>
+                <Input
+                  value={feature.link || ''}
+                  onChange={(e) => updateFeature(index, 'link', null, e.target.value)}
+                  placeholder="/path/to/page or https://example.com"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Leave empty if you don't want the card to be clickable
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+      
+      {features.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          No features yet. Click "Add Feature" to create one.
+        </div>
+      )}
+    </div>
+  );
+}
 
 const PAGE_TABS = [
   { 
@@ -917,28 +1205,35 @@ export default function AdminSettings() {
                       />
                     </div>
 
-                    {/* Content (JSON) */}
-                    <div>
-                      <Label>{t('homePage.content')}</Label>
-                      <Textarea
-                        value={typeof content.content === 'string' ? content.content : JSON.stringify(content.content || {}, null, 2)}
-                        onChange={(e) => {
-                          try {
-                            const parsed = JSON.parse(e.target.value);
-                            handleHomeContentChange(section.key, 'content', parsed);
-                          } catch {
-                            // Invalid JSON, store as string for now
-                            handleHomeContentChange(section.key, 'content', e.target.value);
-                          }
-                        }}
-                        placeholder='{"features": [...], "achievements": [...]}'
-                        rows={8}
-                        className="font-mono text-sm"
+                    {/* Content (JSON) - Special handling for why_choose features */}
+                    {section.key === 'why_choose' ? (
+                      <WhyChooseFeatureEditor
+                        content={content}
+                        onChange={(newContent) => handleHomeContentChange(section.key, 'content', newContent)}
                       />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {t('homePage.contentHint')}
-                      </p>
-                    </div>
+                    ) : (
+                      <div>
+                        <Label>{t('homePage.content')}</Label>
+                        <Textarea
+                          value={typeof content.content === 'string' ? content.content : JSON.stringify(content.content || {}, null, 2)}
+                          onChange={(e) => {
+                            try {
+                              const parsed = JSON.parse(e.target.value);
+                              handleHomeContentChange(section.key, 'content', parsed);
+                            } catch {
+                              // Invalid JSON, store as string for now
+                              handleHomeContentChange(section.key, 'content', e.target.value);
+                            }
+                          }}
+                          placeholder='{"features": [...], "achievements": [...]}'
+                          rows={8}
+                          className="font-mono text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {t('homePage.contentHint')}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Images */}
                     <div>

@@ -12,6 +12,7 @@ import { BookOpen, Clock, Users, Star, ArrowLeft, Monitor, MapPin, Users2, Calen
 import { notFound } from "next/navigation"
 import { DynamicCourseTabs } from "@/components/dynamic-course-tabs"
 import { CourseSidebar } from "@/components/course-sidebar"
+import { WishlistButton } from "@/components/wishlist-button"
 import { apiClient } from "@/lib/api"
 
 type TranslationObject = { en: string; ar: string } | string
@@ -382,13 +383,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
             >
               {course.is_free ? 'Enroll for Free' : `Enroll Now - $${course.price}`}
             </Button>
-            <Button
+            <WishlistButton
+              courseId={course.id}
+              courseTitle={getTranslation(course.title, locale)}
               variant="outline"
               size="lg"
               className="px-8 py-3 text-lg font-semibold border-2 hover:bg-gray-700 hover:border-gray-700 transition-all duration-300"
-            >
-              Add to Wishlist
-            </Button>
+            />
           </div>
         </div>
       </Section>

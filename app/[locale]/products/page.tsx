@@ -17,6 +17,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { apiClient } from "@/lib/api"
 import type { ServiceCenter } from "@/types/service-center"
 import { useProductWishlist } from "@/hooks/use-product-wishlist"
+import { useUser } from "@/contexts/user-context"
+import { useToast } from "@/hooks/use-toast"
+import { LoginModal } from "@/components/login-modal"
 
 type TranslationObject = { en: string; ar: string } | string
 
@@ -412,13 +415,30 @@ export default function ProductsPage() {
 }
 
 function ProductCard({ product, index }: { product: Product; index: number }) {
+  const { isLoggedIn } = useUser()
   const { isInWishlist, toggleProduct } = useProductWishlist()
+  const { toast } = useToast()
+  const [showLoginModal, setShowLoginModal] = useState(false)
   const inWishlist = isInWishlist(product.id)
 
   const handleHeartClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    if (!isLoggedIn) {
+      setShowLoginModal(true)
+      return
+    }
+    
     toggleProduct(product.id)
+  }
+
+  const handleLoginSuccess = () => {
+    toggleProduct(product.id)
+    toast({
+      title: "Added to Wishlist",
+      description: `"${product.name}" has been added to your wishlist`,
+    })
   }
 
   return (
@@ -468,6 +488,11 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
               }`}
             />
           </button>
+          <LoginModal 
+            open={showLoginModal} 
+            onOpenChange={setShowLoginModal}
+            onSuccess={handleLoginSuccess}
+          />
         </div>
 
         {/* Product Info */}

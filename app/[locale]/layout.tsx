@@ -10,6 +10,7 @@ import { ConditionalHeader } from '@/components/conditional-header'
 import { ConditionalFooter } from '@/components/conditional-footer'
 import { VisitTrackerProvider } from '@/components/visit-tracker-provider'
 import { SocialMediaButtons } from '@/components/social-media-buttons'
+import { ScrollToTop } from '@/components/scroll-to-top'
 import { HtmlAttributes } from '@/components/html-attributes'
 import { routing } from "@/i18n/routing";
 import { Locale } from "next-intl";
@@ -29,7 +30,7 @@ export default async function LocaleLayout({
   const { locale } = await params;
 
   // Validate that the incoming `locale` parameter is valid
-  if (!hasLocale(routing.locales, locale))  {
+  if (!hasLocale(routing.locales, locale)) {
     notFound();
   }
 
@@ -49,6 +50,7 @@ export default async function LocaleLayout({
             <Toaster />
             <ConditionalFooter />
             <SocialMediaButtons position="right" showLabels={true} />
+            <ScrollToTop />
           </UserProvider>
         </ReduxProvider>
       </NextIntlClientProvider>

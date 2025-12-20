@@ -13,7 +13,6 @@ import { TypewriterHero } from "@/components/typewriter-hero"
 import { WhyChooseEPRI } from "@/components/why-choose-epri"
 import { AnimatedSection } from "@/components/animated-section"
 import { AnimatedCounter } from "@/components/animated-counter"
-import { ScrollToTop } from "@/components/scroll-to-top"
 import { ServicesSection } from "@/components/services-section"
 import { HomeServiceCentersPreview } from "@/components/home-service-centers-preview"
 import { ClientsCarousel } from "@/components/clients-carousel"
@@ -47,160 +46,160 @@ export default async function HomePage({
     const upcomingEvents = events.slice(0,)
     const announcements = getActiveAnnouncements()
 
-  return (
-    <PageContainer>
-      <HeroSlider />
+    return (
+      <PageContainer>
+        <HeroSlider />
 
-      {/* Typewriter Hero Section */}
-      {/* <TypewriterHero /> */}
+        {/* Typewriter Hero Section */}
+        {/* <TypewriterHero /> */}
 
-      {/* Why Choose EPRI Section */}
-      <WhyChooseEPRI />
+        {/* Why Choose EPRI Section */}
+        <WhyChooseEPRI />
 
-      {/* Announcements Section */}
-      {/* <AnnouncementsSwiper 
+        {/* Announcements Section */}
+        {/* <AnnouncementsSwiper 
         announcements={announcements}
         autoHide={true}
         showCloseButton={true}
         className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900 border-b border-border/50"
       /> */}
 
-      {/* 1. Events & Ads Section */}
-      <Section>
-        <AnimatedSection animation="fade-up">
-          <div className="flex items-center justify-between mb-12">
-            <div>
-              <h2 className="font-serif text-4xl font-bold mb-4">{t('home.sections.events')}</h2>
+        {/* 1. Events & Ads Section */}
+        <Section>
+          <AnimatedSection animation="fade-up">
+            <div className="flex items-center justify-between mb-12">
+              <div>
+                <h2 className="font-serif text-4xl font-bold mb-4">{t('home.sections.events')}</h2>
+              </div>
+              <Button
+                asChild
+                className="hidden md:flex bg-[#8B1538] hover:bg-[#A01A42] text-white rounded-lg px-6 py-2 font-semibold shadow-md hover:shadow-lg transition-all"
+              >
+                <Link href="/events">
+                  Browse All Events <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
             </div>
-            <Button 
-              asChild 
-              className="hidden md:flex bg-[#8B1538] hover:bg-[#A01A42] text-white rounded-lg px-6 py-2 font-semibold shadow-md hover:shadow-lg transition-all"
-            >
-              <Link href="/events">
-                Browse All Events <ArrowRight className="ml-2 h-4 w-4" />
+          </AnimatedSection>
+
+          {/* Events and Ads Grid - Responsive: 2/3 Events, 1/3 Ads */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Events Section - 2/3 width on large screens */}
+            <div className="lg:col-span-2 order-1 lg:order-1">
+              <EventsCarouselHome events={upcomingEvents} />
+            </div>
+
+            {/* Ads Section - 1/3 width on large screens */}
+            <div className="lg:col-span-1 order-2 lg:order-2">
+              <AdsSection />
+            </div>
+          </div>
+        </Section>
+
+        {/* 2. Latest News Section */}
+        <Section className="bg-muted/30">
+          <AnimatedSection animation="fade-up">
+            <div className="flex items-center justify-between mb-12">
+              <div>
+                <h2 className="font-serif text-4xl font-bold mb-4">{t('home.sections.news')}</h2>
+              </div>
+              <Link
+                href="/news"
+                className="hidden md:flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
+              >
+                {t('home.sections.allNews')} <ArrowRight className="h-4 w-4" />
               </Link>
-            </Button>
-          </div>
-        </AnimatedSection>
-        
-        {/* Events and Ads Grid - Responsive: 2/3 Events, 1/3 Ads */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Events Section - 2/3 width on large screens */}
-          <div className="lg:col-span-2 order-1 lg:order-1">
-            <EventsCarouselHome events={upcomingEvents} />
-          </div>
-          
-          {/* Ads Section - 1/3 width on large screens */}
-          <div className="lg:col-span-1 order-2 lg:order-2">
-            <AdsSection />
-          </div>
+            </div>
+          </AnimatedSection>
+          <NewsCarousel news={news.slice(0, 9)} />
+        </Section>
+
+        {/* 3. Achievements Slider Section */}
+        <div className="w-full">
+          <AchievementsSlider />
         </div>
-      </Section>
 
-      {/* 2. Latest News Section */}
-      <Section className="bg-muted/30">
-        <AnimatedSection animation="fade-up">
-          <div className="flex items-center justify-between mb-12">
-            <div>
-              <h2 className="font-serif text-4xl font-bold mb-4">{t('home.sections.news')}</h2>
+        {/* 4. Products Section */}
+        <Section>
+          <AnimatedSection animation="fade-up">
+            <div className="flex items-center justify-between mb-12">
+              <div>
+                <h2 className="font-serif text-4xl font-bold mb-4">{t('home.sections.products')}</h2>
+                <p className="text-muted-foreground text-lg">{t('home.sections.products_description')}</p>
+              </div>
+              <Link
+                href="/products"
+                className="hidden md:flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
+              >
+                {t('home.sections.seeMore')} <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-            <Link 
-              href="/news" 
-              className="hidden md:flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
-            >
-              {t('home.sections.allNews')} <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </AnimatedSection>
-        <NewsCarousel news={news.slice(0, 9)} />
-      </Section>
-
-      {/* 3. Achievements Slider Section */}
-      <div className="w-full">
-        <AchievementsSlider />
-      </div>
-
-      {/* 4. Products Section */}
-      <Section>
-        <AnimatedSection animation="fade-up">
-          <div className="flex items-center justify-between mb-12">
-            <div>
-              <h2 className="font-serif text-4xl font-bold mb-4">{t('home.sections.products')}</h2>
-              <p className="text-muted-foreground text-lg">{t('home.sections.products_description')}</p>
-            </div>
-            <Link 
-              href="/products" 
-              className="hidden md:flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
+          </AnimatedSection>
+          <ProductsSection />
+          <div className="mt-8 text-center md:hidden">
+            <Link
+              href="/products"
+              className="inline-flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
             >
               {t('home.sections.seeMore')} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-        </AnimatedSection>
-        <ProductsSection />
-        <div className="mt-8 text-center md:hidden">
-          <Link 
-            href="/products" 
-            className="inline-flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
-          >
-            {t('home.sections.seeMore')} <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </Section>
+        </Section>
 
-      {/* 5. Explore Our Online Courses Section */}
-      <Section className="bg-white dark:bg-slate-900">
-        <AnimatedSection animation="fade-up">
-          <div className="flex items-center justify-between mb-12">
-            <div className="text-center md:text-left flex-1">
-              <h2 className="font-serif text-4xl font-bold mb-4 text-slate-900 dark:text-slate-100">
-                {t('home.sections.courses')}
+        {/* 5. Explore Our Online Courses Section */}
+        <Section className="bg-white dark:bg-slate-900">
+          <AnimatedSection animation="fade-up">
+            <div className="flex items-center justify-between mb-12">
+              <div className="text-center md:text-left flex-1">
+                <h2 className="font-serif text-4xl font-bold mb-4 text-slate-900 dark:text-slate-100">
+                  {t('home.sections.courses')}
+                </h2>
+              </div>
+              <Link
+                href="/courses"
+                className="hidden md:flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
+              >
+                {t('home.sections.seeMore')} <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </AnimatedSection>
+          <CoursesCarousel />
+          <div className="mt-8 text-center md:hidden">
+            <Link
+              href="/courses"
+              className="inline-flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
+            >
+              {t('home.sections.seeMore')} <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </Section>
+
+        {/* 6. Scientific Equipment Section */}
+        <ScientificEquipmentSection />
+
+        {/* 7. Connect Section */}
+        <ConnectSection />
+
+        {/* 8. Our Trusted Partners Section */}
+        <Section className="bg-gradient-to-br overflow-hidden from-cyan-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-cyan-900/20 dark:to-blue-900/20">
+          <AnimatedSection animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="font-serif text-4xl font-bold mb-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                {t('home.sections.partners')}
               </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                {t('home.sections.partners_description')}
+              </p>
             </div>
-            <Link 
-              href="/courses" 
-              className="hidden md:flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
-            >
-              {t('home.sections.seeMore')} <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </AnimatedSection>
-        <CoursesCarousel />
-        <div className="mt-8 text-center md:hidden">
-          <Link 
-            href="/courses" 
-            className="inline-flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
-          >
-            {t('home.sections.seeMore')} <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </Section>
+          </AnimatedSection>
+          <AnimatedSection animation="fade-up" delay={0.5}>
+            <ClientsCarousel />
+          </AnimatedSection>
+        </Section>
 
-      {/* 6. Scientific Equipment Section */}
-      <ScientificEquipmentSection />
-
-      {/* 7. Connect Section */}
-      <ConnectSection />
-
-      {/* 8. Our Trusted Partners Section */}
-      <Section className="bg-gradient-to-br overflow-hidden from-cyan-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-cyan-900/20 dark:to-blue-900/20">
-        <AnimatedSection animation="fade-up">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-4xl font-bold mb-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              {t('home.sections.partners')}
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              {t('home.sections.partners_description')}
-            </p>
-          </div>
-        </AnimatedSection>
-        <AnimatedSection animation="fade-up" delay={0.5}>
-          <ClientsCarousel />
-        </AnimatedSection>
-      </Section>
-
-      {/* Commented Out Sections */}
-      {/* About Section */}
-      {/* <Section>
+        {/* Commented Out Sections */}
+        {/* About Section */}
+        {/* <Section>
         <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
           <AnimatedSection animation="fade-up">
             <h2 className="font-serif text-3xl md:text-4xl font-bold mb-6">Leading the Way in Education and Research</h2>
@@ -231,8 +230,8 @@ export default async function HomePage({
         </div>
       </Section> */}
 
-      {/* Vision, Mission & Values Section */}
-      {/* <Section className="bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-pink-900/20">
+        {/* Vision, Mission & Values Section */}
+        {/* <Section className="bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-pink-900/20">
         <AnimatedSection animation="fade-up">
           <div className="text-center mb-8 md:mb-12">
             <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
@@ -317,14 +316,14 @@ export default async function HomePage({
         </div>
       </Section> */}
 
-      {/* Services Section */}
-      {/* <ServicesSection /> */}
+        {/* Services Section */}
+        {/* <ServicesSection /> */}
 
-      {/* Service Centers Preview */}
-      {/* <HomeServiceCentersPreview /> */}
+        {/* Service Centers Preview */}
+        {/* <HomeServiceCentersPreview /> */}
 
-      {/* Learn from the Best Section */}
-      {/* <Section className="bg-muted/30">
+        {/* Learn from the Best Section */}
+        {/* <Section className="bg-muted/30">
         <AnimatedSection animation="fade-up">
           <div className="flex items-center justify-between mb-12">
             <div>
@@ -365,8 +364,8 @@ export default async function HomePage({
         </div>
       </Section> */}
 
-      {/* What Our Students Say Section */}
-      {/* <Section className="bg-muted/30">
+        {/* What Our Students Say Section */}
+        {/* <Section className="bg-muted/30">
         <AnimatedSection animation="fade-up">
           <div className="text-center mb-12">
             <h2 className="font-serif text-4xl font-bold mb-4">What Our Students Say</h2>
@@ -397,8 +396,8 @@ export default async function HomePage({
         </div>
       </Section> */}
 
-      {/* CTA Section */}
-      {/* <Section className="bg-primary text-primary-foreground">
+        {/* CTA Section */}
+        {/* <Section className="bg-primary text-primary-foreground">
         <AnimatedSection animation="fade-up">
           <div className="text-center max-w-3xl mx-auto">
             <h2 className="font-serif text-4xl font-bold mb-6">Ready to Start Your Learning Journey?</h2>
@@ -424,8 +423,8 @@ export default async function HomePage({
         </AnimatedSection>
       </Section> */}
 
-      {/* Popular Courses Section */}
-      {/* <Section className="bg-muted/30">
+        {/* Popular Courses Section */}
+        {/* <Section className="bg-muted/30">
         <AnimatedSection animation="fade-up">
           <div className="flex items-center justify-between mb-12">
             <div>
@@ -488,14 +487,13 @@ export default async function HomePage({
         </div>
       </Section> */}
 
-      {/* CTA Section */}
-      <CTASection />
+        {/* CTA Section */}
+        {/* <CTASection /> */}
 
 
 
-      <ScrollToTop />
-    </PageContainer>
-  )
+      </PageContainer>
+    )
   } catch (error) {
     console.error('Error in HomePage:', error);
     throw error;

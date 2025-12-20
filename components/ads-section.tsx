@@ -81,9 +81,9 @@ export function AdsSection() {
   }
 
   return (
-    <div className="h-full w-full">
+    <div className="h-[500px] w-full">
       <div className="sticky top-4 max-md:static">
-        <div className="relative h-[600px] md:h-[700px]">
+        <div className="relative h-[450px] md:h-[450px]">
           {/* Navigation Arrows */}
           {ads.length > 3 && (
             <>

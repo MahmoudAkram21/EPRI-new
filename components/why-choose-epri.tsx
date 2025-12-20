@@ -16,8 +16,26 @@ import {
   FileCheck,
   Sparkles,
   Target,
-  Zap
+  Zap,
+  Star,
+  Heart,
+  Lightbulb,
+  Rocket,
+  Flame,
+  Gem,
+  Crown,
+  Trophy,
+  Medal,
+  Badge as BadgeIcon,
+  CheckSquare,
+  ThumbsUp,
+  Eye,
+  Brain,
+  Cpu,
+  Activity,
+  BarChart3
 } from "lucide-react"
+import Link from "next/link"
 import Image from "next/image"
 
 // Helper function to extract localized value
@@ -52,6 +70,23 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   CheckCircle2,
   FileCheck,
   Sparkles,
+  Star,
+  Heart,
+  Lightbulb,
+  Rocket,
+  Flame,
+  Gem,
+  Crown,
+  Trophy,
+  Medal,
+  Badge: Award, // Using Award as fallback for Badge
+  CheckSquare,
+  ThumbsUp,
+  Eye,
+  Brain,
+  Cpu,
+  Activity,
+  BarChart3,
 }
 
 export function WhyChooseEPRI() {
@@ -151,21 +186,34 @@ export function WhyChooseEPRI() {
             const Icon = iconMap[feature.icon] || Award
             const title = getLocalizedValue(feature.title, locale)
             const description = getLocalizedValue(feature.description, locale)
+            const link = feature.link || ''
+            const hasLink = link && link.trim() !== ''
+            
+            const cardContent = (
+              <Card className={`h-full hover:shadow-xl transition-all duration-300 group border border-white/20 hover:border-primary/30 ${hasLink ? 'cursor-pointer' : ''}`}>
+                <CardContent className="p-6">
+                  <div className={`w-16 h-16 mx-auto mb-4 bg-gradient-to-br ${feature.color || 'from-blue-500 to-cyan-500'} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300`}>
+                    <Icon className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-serif font-bold text-center mb-3 text-foreground">
+                    {title}
+                  </h3>
+                  <p className="text-muted-foreground text-center text-sm leading-relaxed">
+                    {description}
+                  </p>
+                </CardContent>
+              </Card>
+            )
+            
             return (
               <AnimatedSection key={index} animation="fade-up" delay={index * 0.1}>
-                <Card className="h-full hover:shadow-xl transition-all duration-300 group border border-white/20 hover:border-primary/30">
-                  <CardContent className="p-6">
-                    <div className={`w-16 h-16 mx-auto mb-4 bg-gradient-to-br ${feature.color || 'from-blue-500 to-cyan-500'} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300`}>
-                      <Icon className="h-8 w-8 text-white" />
-                    </div>
-                    <h3 className="text-xl font-serif font-bold text-center mb-3 text-foreground">
-                      {title}
-                    </h3>
-                    <p className="text-muted-foreground text-center text-sm leading-relaxed">
-                      {description}
-                    </p>
-                  </CardContent>
-                </Card>
+                {hasLink ? (
+                  <Link href={link.startsWith('http') ? link : link} target={link.startsWith('http') ? '_blank' : undefined} rel={link.startsWith('http') ? 'noopener noreferrer' : undefined}>
+                    {cardContent}
+                  </Link>
+                ) : (
+                  cardContent
+                )}
               </AnimatedSection>
             )
           })}

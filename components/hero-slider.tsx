@@ -56,6 +56,12 @@ export function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [loading, setLoading] = useState(true)
+  
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [dragOffset, setDragOffset] = useState(0)
+  const dragThreshold = 50 // Minimum pixels to trigger slide change
 
   useEffect(() => {
     const fetchSliders = async () => {
@@ -118,6 +124,77 @@ export function HeroSlider() {
     }
   }, [slides.length])
 
+  // Drag handlers
+  const handleDragStart = useCallback((clientX: number, clientY: number) => {
+    setIsDragging(true)
+    setDragStart({ x: clientX, y: clientY })
+    setDragOffset(0)
+    setIsPaused(true) // Pause auto-rotation while dragging
+  }, [])
+
+  const handleDragMove = useCallback((clientX: number) => {
+    if (!isDragging) return
+    const offset = clientX - dragStart.x
+    setDragOffset(offset)
+  }, [isDragging, dragStart.x])
+
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return
+    
+    // Determine slide direction based on drag distance
+    if (Math.abs(dragOffset) > dragThreshold) {
+      if (dragOffset > 0) {
+        prevSlide() // Dragged right, go to previous
+      } else {
+        nextSlide() // Dragged left, go to next
+      }
+    }
+    
+    // Reset drag state
+    setIsDragging(false)
+    setDragOffset(0)
+    setIsPaused(false) // Resume auto-rotation
+  }, [isDragging, dragOffset, dragThreshold, prevSlide, nextSlide])
+
+  // Mouse event handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    handleDragStart(e.clientX, e.clientY)
+  }, [handleDragStart])
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isDragging) {
+      handleDragMove(e.clientX)
+    }
+  }, [isDragging, handleDragMove])
+
+  const handleMouseUp = useCallback(() => {
+    handleDragEnd()
+  }, [handleDragEnd])
+
+  const handleMouseLeave = useCallback(() => {
+    if (isDragging) {
+      handleDragEnd()
+    }
+    setIsPaused(false)
+  }, [isDragging, handleDragEnd])
+
+  // Touch event handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    handleDragStart(touch.clientX, touch.clientY)
+  }, [handleDragStart])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isDragging) {
+      const touch = e.touches[0]
+      handleDragMove(touch.clientX)
+    }
+  }, [isDragging, handleDragMove])
+
+  const handleTouchEnd = useCallback(() => {
+    handleDragEnd()
+  }, [handleDragEnd])
+
   useEffect(() => {
     if (!isPaused && slides.length > 0) {
       const interval = setInterval(nextSlide, 5000)
@@ -142,21 +219,113 @@ export function HeroSlider() {
 
   const currentSlideData = slides[currentSlide]
   const Icon = currentSlideData.icon
+  
+  // Calculate adjacent slides for drag preview
+  const prevSlideIndex = (currentSlide - 1 + slides.length) % slides.length
+  const nextSlideIndex = (currentSlide + 1) % slides.length
+  const prevSlideData = slides[prevSlideIndex]
+  const nextSlideData = slides[nextSlideIndex]
 
   return (
     <section
-      className="relative h-screen overflow-hidden"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+      className="relative h-screen overflow-hidden cursor-grab active:cursor-grabbing select-none"
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseEnter={() => !isDragging && setIsPaused(true)}
     >
+      {/* Previous slide preview (when dragging right) */}
+      {isDragging && dragOffset > 0 && (
+        <motion.div
+          initial={{ opacity: 0, x: -100 }}
+          animate={{ opacity: 0.3, x: dragOffset - 100 }}
+          className="absolute inset-0 z-[5]"
+        >
+          {prevSlideData.mediaType === "video" && prevSlideData.video ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            >
+              <source src={prevSlideData.video} type="video/mp4" />
+              {prevSlideData.image && (
+                <img
+                  src={prevSlideData.image}
+                  alt={prevSlideData.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              )}
+            </video>
+          ) : (
+            <img
+              src={prevSlideData.image || "/placeholder.svg"}
+              alt={prevSlideData.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/85 to-primary/75" />
+        </motion.div>
+      )}
+
+      {/* Next slide preview (when dragging left) */}
+      {isDragging && dragOffset < 0 && (
+        <motion.div
+          initial={{ opacity: 0, x: 100 }}
+          animate={{ opacity: 0.3, x: dragOffset + 100 }}
+          className="absolute inset-0 z-[5]"
+        >
+          {nextSlideData.mediaType === "video" && nextSlideData.video ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            >
+              <source src={nextSlideData.video} type="video/mp4" />
+              {nextSlideData.image && (
+                <img
+                  src={nextSlideData.image}
+                  alt={nextSlideData.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              )}
+            </video>
+          ) : (
+            <img
+              src={nextSlideData.image || "/placeholder.svg"}
+              alt={nextSlideData.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/85 to-primary/75" />
+        </motion.div>
+      )}
+
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, scale: 1.05, x: 0 }}
+          animate={{ 
+            opacity: isDragging ? 0.7 : 1, 
+            scale: isDragging ? 0.98 : 1,
+            x: isDragging ? dragOffset * 0.3 : 0
+          }}
           exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.7, ease: "easeInOut" }}
-          className="absolute inset-0"
+          transition={{ 
+            duration: isDragging ? 0 : 0.7, 
+            ease: "easeInOut" 
+          }}
+          className="absolute inset-0 z-10"
+          style={{
+            transform: isDragging ? `translateX(${dragOffset * 0.3}px)` : undefined,
+          }}
         >
           {/* Background Media (Image or Video) with Parallax Effect */}
           <motion.div
