@@ -3,27 +3,89 @@
 import { useUser } from "@/contexts/user-context"
 import { courses } from "@/lib/data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Heart, Award, TrendingUp, Users, Calendar, Settings, BarChart3 } from "lucide-react"
+import { BookOpen, Heart, Award, TrendingUp, Users, Calendar, Settings, BarChart3, Microscope, ShoppingBag } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
+import { apiClient } from "@/lib/api"
+import { useProductWishlist } from "@/hooks/use-product-wishlist"
+import { useEquipmentWishlist } from "@/hooks/use-equipment-wishlist"
+import { Tabs as TabsComponent } from "@/components/ui/tabs"
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard')
   const locale = useLocale()
-  const { enrolledCourses, wishlist, user, isLoading } = useUser()
+  const { enrolledCourses, wishlist, user, isLoading, isLoggedIn } = useUser()
   const router = useRouter()
+  const { wishlist: productWishlist } = useProductWishlist()
+  const { wishlist: equipmentWishlist } = useEquipmentWishlist()
   
+  const [products, setProducts] = useState<any[]>([])
+  const [equipments, setEquipments] = useState<any[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(false)
+  const [loadingEquipments, setLoadingEquipments] = useState(false)
+
   // Redirect if user is not verified (this is also checked in layout, but adding here for extra safety)
   useEffect(() => {
     if (!isLoading && user && !user.is_verified) {
       router.push(`/${locale}/pending-verification`)
     }
   }, [user, isLoading, router, locale])
+
+  // Fetch products and equipments for wishlist display
+  useEffect(() => {
+    if (isLoggedIn) {
+      // Fetch products
+      if (productWishlist.length > 0) {
+        setLoadingProducts(true)
+        apiClient.getProducts({ limit: 100 })
+          .then((response) => {
+            const allProducts = response.products || []
+            const favoriteProducts = allProducts.filter((p: any) => productWishlist.includes(p.id))
+            setProducts(favoriteProducts)
+          })
+          .catch((error) => {
+            console.error('Error fetching products:', error)
+          })
+          .finally(() => {
+            setLoadingProducts(false)
+          })
+      }
+
+      // Fetch equipments
+      if (equipmentWishlist.length > 0) {
+        setLoadingEquipments(true)
+        apiClient.getServiceCenters()
+          .then((response) => {
+            const allEquipments: any[] = []
+            response.centers?.forEach((center: any) => {
+              if (Array.isArray(center.equipments)) {
+                center.equipments.forEach((eq: any) => {
+                  if (equipmentWishlist.includes(eq.id || String(eq.name))) {
+                    allEquipments.push({
+                      ...eq,
+                      centerName: center.name,
+                      centerSlug: center.slug,
+                    })
+                  }
+                })
+              }
+            })
+            setEquipments(allEquipments)
+          })
+          .catch((error) => {
+            console.error('Error fetching equipments:', error)
+          })
+          .finally(() => {
+            setLoadingEquipments(false)
+          })
+      }
+    }
+  }, [isLoggedIn, productWishlist, equipmentWishlist])
   
   // Check if user is admin or instructor
   const isAdmin = user?.role === 'ADMIN'
@@ -31,7 +93,10 @@ export default function DashboardPage() {
   const canManageEvents = isAdmin || isInstructor
 
   const enrolledCoursesData = courses.filter((course) => enrolledCourses.includes(course.id))
-  const wishlistData = courses.filter((course) => wishlist.includes(course.id))
+  const wishlistCoursesData = courses.filter((course) => wishlist.includes(course.id))
+
+  // Calculate total wishlist items
+  const totalWishlistItems = wishlistCoursesData.length + productWishlist.length + equipmentWishlist.length
 
   // Admin/Instructor stats
   const adminStats = [
@@ -76,7 +141,7 @@ export default function DashboardPage() {
     },
     {
       title: t('wishlistItems'),
-      value: wishlist.length,
+      value: totalWishlistItems,
       icon: Heart,
       color: "text-red-600",
       bgColor: "bg-red-100",
@@ -262,38 +327,157 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Wishlist Preview */}
-      {wishlistData.length > 0 && (
+      {/* Favorites/Wishlist Preview */}
+      {totalWishlistItems > 0 && isLoggedIn && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-serif text-2xl font-bold">{t('yourWishlist')}</h2>
-            <Button variant="ghost" asChild>
-              <Link href={`/${locale}/dashboard/wishlist`}>{t('viewAll')}</Link>
-            </Button>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {wishlistData.slice(0, 3).map((course) => (
-              <Link key={course.id} href={`/${locale}/courses/${course.id}`}>
-                <Card className="hover:shadow-lg transition-shadow">
-                  <img
-                    src={course.image || "/placeholder.svg"}
-                    alt={course.title}
-                    className="w-full h-40 object-cover rounded-t-lg"
-                  />
-                  <CardHeader>
-                    <CardTitle className="text-lg">{course.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{course.subtitle}</p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">{course.isFree ? t('free') : `$${course.price}`}</span>
-                      <span className="text-sm text-muted-foreground">{course.students.toLocaleString()} {t('students')}</span>
-                    </div>
+          <TabsComponent defaultValue="courses" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="courses" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                Courses ({wishlistCoursesData.length})
+              </TabsTrigger>
+              <TabsTrigger value="products" className="flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4" />
+                Products ({productWishlist.length})
+              </TabsTrigger>
+              <TabsTrigger value="equipments" className="flex items-center gap-2">
+                <Microscope className="h-4 w-4" />
+                Equipment ({equipmentWishlist.length})
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Courses Tab */}
+            <TabsContent value="courses" className="mt-6">
+              {wishlistCoursesData.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {wishlistCoursesData.slice(0, 6).map((course) => (
+                    <Link key={course.id} href={`/${locale}/courses/${course.id}`}>
+                      <Card className="hover:shadow-lg transition-shadow">
+                        <img
+                          src={course.image || "/placeholder.svg"}
+                          alt={course.title}
+                          className="w-full h-40 object-cover rounded-t-lg"
+                        />
+                        <CardHeader>
+                          <CardTitle className="text-lg">{course.title}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{course.subtitle}</p>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold">{course.isFree ? t('free') : `$${course.price}`}</span>
+                            <span className="text-sm text-muted-foreground">{course.students.toLocaleString()} {t('students')}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-semibold text-xl mb-2">No favorite courses</h3>
+                    <p className="text-muted-foreground mb-6">Start adding courses to your wishlist</p>
+                    <Button asChild>
+                      <Link href={`/${locale}/courses`}>Browse Courses</Link>
+                    </Button>
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
-          </div>
+              )}
+            </TabsContent>
+
+            {/* Products Tab */}
+            <TabsContent value="products" className="mt-6">
+              {products.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {products.slice(0, 6).map((product: any) => (
+                    <Link key={product.id} href={`/${locale}/products/${product.slug || product.id}`}>
+                      <Card className="hover:shadow-lg transition-shadow">
+                        <img
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.name}
+                          className="w-full h-40 object-cover rounded-t-lg"
+                        />
+                        <CardHeader>
+                          <CardTitle className="text-lg">{product.name}</CardTitle>
+                          {product.short_description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">{product.short_description}</p>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold">
+                              {product.price ? `$${product.price}` : 'Price on request'}
+                            </span>
+                            {product.centerName && (
+                              <span className="text-sm text-muted-foreground">{product.centerName}</span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-semibold text-xl mb-2">No favorite products</h3>
+                    <p className="text-muted-foreground mb-6">Start adding products to your wishlist</p>
+                    <Button asChild>
+                      <Link href={`/${locale}/products`}>Browse Products</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Equipments Tab */}
+            <TabsContent value="equipments" className="mt-6">
+              {equipments.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {equipments.slice(0, 6).map((equipment: any) => (
+                    <Link key={equipment.id || equipment.name} href={`/${locale}/service-centers/${equipment.centerSlug}#equipment`}>
+                      <Card className="hover:shadow-lg transition-shadow">
+                        <img
+                          src={equipment.image || "/placeholder.svg"}
+                          alt={equipment.name || 'Equipment'}
+                          className="w-full h-40 object-cover rounded-t-lg"
+                        />
+                        <CardHeader>
+                          <CardTitle className="text-lg">{equipment.name || 'Equipment'}</CardTitle>
+                          {equipment.centerName && (
+                            <p className="text-sm text-muted-foreground">{equipment.centerName}</p>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                          {equipment.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {equipment.description}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Microscope className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-semibold text-xl mb-2">No favorite equipment</h3>
+                    <p className="text-muted-foreground mb-6">Start adding equipment to your wishlist</p>
+                    <Button asChild>
+                      <Link href={`/${locale}/equipments`}>Browse Equipment</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </TabsComponent>
         </div>
       )}
     </div>

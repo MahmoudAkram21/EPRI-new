@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import Link from "next/link"
-import { useLocale } from "next-intl"
-import { Microscope, ChevronLeft, ChevronRight, Info } from "lucide-react"
+import { useLocale, useTranslations } from "next-intl"
+import { Microscope, ChevronLeft, ChevronRight, Info, ArrowRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,8 @@ import { apiClient } from "@/lib/api"
 import type { ServiceCenter, ServiceCenterEquipment } from "@/types/service-center"
 import useEmblaCarousel from "embla-carousel-react"
 import Autoplay from "embla-carousel-autoplay"
+import { cn } from "@/lib/utils"
+import { EquipmentWishlistButton } from "@/components/equipment-wishlist-button"
 
 type TranslationObject = { en: string; ar: string } | string
 
@@ -24,10 +26,19 @@ function getTranslation(value: TranslationObject | undefined, locale: string): s
   return ''
 }
 
+const filterCategories = [
+  { id: "all", label: "All" },
+  { id: "departments", label: "Departments" },
+  { id: "centers", label: "Centers" },
+  { id: "units", label: "Units" },
+]
+
 export function ScientificEquipmentSection() {
   const locale = useLocale()
+  const t = useTranslations()
   const [centers, setCenters] = useState<ServiceCenter[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedFilter, setSelectedFilter] = useState("all")
   
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
@@ -78,11 +89,11 @@ export function ScientificEquipmentSection() {
     }
 
     fetchCenters()
-  }, [])
+  }, [locale])
 
-  // Extract all equipment from all centers
+  // Extract all equipment from all centers with center type
   const allEquipment = useMemo(() => {
-    const equipment: Array<ServiceCenterEquipment & { centerName: string; centerSlug: string }> = []
+    const equipment: Array<ServiceCenterEquipment & { centerName: string; centerSlug: string; centerType?: string }> = []
     
     centers.forEach((center) => {
       if (Array.isArray(center.equipments) && center.equipments.length > 0) {
@@ -91,6 +102,7 @@ export function ScientificEquipmentSection() {
             ...eq,
             centerName: center.name,
             centerSlug: center.slug,
+            centerType: center.type,
           })
         })
       }
@@ -98,6 +110,46 @@ export function ScientificEquipmentSection() {
     
     return equipment
   }, [centers])
+
+  // Filter equipment based on selected filter
+  const filteredEquipment = useMemo(() => {
+    if (selectedFilter === "all") {
+      return allEquipment
+    } else if (selectedFilter === "centers") {
+      return allEquipment.filter((eq) => eq.centerType === "center")
+    } else if (selectedFilter === "units") {
+      return allEquipment.filter((eq) => eq.centerType === "unit")
+    } else if (selectedFilter === "departments") {
+      // Departments are centers that don't have type "center" or "unit"
+      return allEquipment.filter((eq) => !eq.centerType || (eq.centerType !== "center" && eq.centerType !== "unit"))
+    }
+    return allEquipment
+  }, [allEquipment, selectedFilter])
+
+  // Reset carousel when filter changes
+  useEffect(() => {
+    // Only reset carousel if it's initialized and we have items to show
+    if (!emblaApi || filteredEquipment.length === 0) {
+      return
+    }
+    
+    // Use a small delay to ensure DOM is updated
+    const timer = setTimeout(() => {
+      if (emblaApi && typeof emblaApi.reInit === 'function') {
+        try {
+          emblaApi.reInit()
+          if (typeof emblaApi.scrollTo === 'function') {
+            emblaApi.scrollTo(0)
+          }
+        } catch (error) {
+          // Silently handle errors - carousel might not be ready
+          console.warn('Carousel reset error:', error)
+        }
+      }
+    }, 10)
+    
+    return () => clearTimeout(timer)
+  }, [selectedFilter, emblaApi, filteredEquipment.length])
 
 
   if (loading) {
@@ -117,56 +169,108 @@ export function ScientificEquipmentSection() {
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-primary/10 rounded-lg">
-              <Microscope className="h-8 w-8 text-primary" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Microscope className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-serif text-4xl font-bold text-slate-900 dark:text-slate-100">
+                  Scientific Equipment
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1">
+                  {filteredEquipment.length} {selectedFilter === 'all' ? 'Equipment Available' : `${filterCategories.find(c => c.id === selectedFilter)?.label} Equipment`}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-serif text-4xl font-bold text-slate-900 dark:text-slate-100">
-                Scientific Equipment
-              </h2>
-              <p className="text-muted-foreground text-sm mt-1">
-                {allEquipment.length} Equipment Available
-              </p>
-            </div>
+            <Link
+              href="/equipments"
+              className="hidden md:flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
+            >
+              {t('home.sections.seeMore')} <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-3 overflow-x-auto pb-4 mb-4">
+          {filterCategories.map((category) => {
+            const count = category.id === "all" 
+              ? allEquipment.length 
+              : category.id === "centers"
+              ? allEquipment.filter((eq) => eq.centerType === "center").length
+              : category.id === "units"
+              ? allEquipment.filter((eq) => eq.centerType === "unit").length
+              : allEquipment.filter((eq) => !eq.centerType || (eq.centerType !== "center" && eq.centerType !== "unit")).length
+
+            return (
+              <button
+                key={category.id}
+                onClick={() => setSelectedFilter(category.id)}
+                className={cn(
+                  "px-6 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all",
+                  selectedFilter === category.id
+                    ? "bg-primary text-white shadow-md"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                )}
+              >
+                {category.label} ({count})
+              </button>
+            )
+          })}
         </div>
 
         {/* Equipment Grid Container with Navigation */}
         <div className="relative">
-          <div ref={emblaRef} className="overflow-hidden">
-            <div className="flex gap-6 py-2">
-              {allEquipment.map((equipment) => (
+          {filteredEquipment.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No {selectedFilter === 'all' ? '' : filterCategories.find(c => c.id === selectedFilter)?.label.toLowerCase()} equipment available at this time.
+            </div>
+          ) : (
+            <>
+              <div ref={emblaRef} className="overflow-hidden">
+                <div className="flex gap-6 py-2">
+                  {filteredEquipment.map((equipment) => (
                 <div
                   key={equipment.id || equipment.name}
                   className="flex-[0_0_100%] min-w-0 md:flex-[0_0_calc(33.333%-1rem)] pl-4"
                 >
-                  <Link 
-                    href={`/service-centers/${equipment.centerSlug}#equipment`}
-                  >
-                    <Card className="group h-full hover:shadow-xl transition-all duration-300 overflow-hidden">
+                  <Card className="group h-full hover:shadow-xl transition-all duration-300 overflow-hidden relative">
                 {/* Image */}
-                <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <img
-                    src={equipment.image || "/placeholder.svg"}
-                    alt={typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                <Link href={`/service-centers/${equipment.centerSlug}#equipment`}>
+                  <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    <img
+                      src={equipment.image || "/placeholder.svg"}
+                      alt={typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </div>
+                </Link>
+                {/* Wishlist Button */}
+                <div className="absolute top-2 right-2 z-10">
+                  <EquipmentWishlistButton
+                    equipmentId={equipment.id || String(equipment.name)}
+                    equipmentName={typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
+                    variant="ghost"
+                    size="icon"
+                    className="bg-white/90 hover:bg-white dark:bg-slate-900/90 dark:hover:bg-slate-900"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
 
                 {/* Content */}
                 <CardContent className="p-6">
-                  <div className="space-y-3">
-                    {/* Center Badge */}
-                    <Badge variant="secondary" className="text-xs">
-                      {equipment.centerName}
-                    </Badge>
+                  <Link href={`/service-centers/${equipment.centerSlug}#equipment`}>
+                    <div className="space-y-3">
+                      {/* Center Badge */}
+                      <Badge variant="secondary" className="text-xs">
+                        {equipment.centerName}
+                      </Badge>
 
-                    {/* Equipment Name */}
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors line-clamp-2">
-                      {typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
-                    </h3>
+                      {/* Equipment Name */}
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors line-clamp-2">
+                        {typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
+                      </h3>
 
                     {/* Description */}
                     {(equipment.description || equipment.details) && (
@@ -202,25 +306,29 @@ export function ScientificEquipmentSection() {
                       </div>
                     )}
 
-                    {/* View Details Button */}
-                    <Button 
-                      variant="outline" 
-                      className="w-full mt-4 group-hover:bg-primary group-hover:text-white transition-colors"
-                    >
-                      <Info className="h-4 w-4 mr-2" />
-                      View Details
-                    </Button>
-                  </div>
+                      {/* View Details Button */}
+                      <Button 
+                        variant="outline" 
+                        className="w-full mt-4 group-hover:bg-primary group-hover:text-white transition-colors"
+                      >
+                        <Info className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                    </div>
+                  </Link>
                 </CardContent>
                     </Card>
-                  </Link>
                 </div>
-              ))}
-            </div>
-          </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Navigation Arrows */}
-          <button
+          {filteredEquipment.length > 3 && (
+            <>
+              <button
             onClick={scrollPrev}
             className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 h-10 w-10 items-center justify-center rounded-full bg-background border shadow-md hover:bg-primary hover:text-white cursor-pointer transition-colors"
             aria-label="Previous equipment"
@@ -230,23 +338,23 @@ export function ScientificEquipmentSection() {
           <button
             onClick={scrollNext}
             className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 h-10 w-10 items-center justify-center rounded-full bg-background border shadow-md hover:bg-primary hover:text-white cursor-pointer transition-colors"
-            aria-label="Next equipment"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </button>
+                aria-label="Next equipment"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          )}
         </div>
 
-        {/* View All Link */}
-        {allEquipment.length > 3 && (
-          <div className="text-center mt-8">
-            <Link href="/equipments">
-              <Button variant="outline" className="bg-transparent">
-                View All Equipment
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        )}
+        {/* View All Link - Mobile */}
+        <div className="mt-8 text-center md:hidden">
+          <Link
+            href="/equipments"
+            className="inline-flex items-center gap-1 text-foreground/80 hover:text-primary transition-colors font-medium text-base"
+          >
+            {t('home.sections.seeMore')} <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </div>
   )
