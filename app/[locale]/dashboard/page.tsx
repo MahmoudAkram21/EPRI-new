@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils"
 import { apiClient } from "@/lib/api"
 import { useProductWishlist } from "@/hooks/use-product-wishlist"
 import { useEquipmentWishlist } from "@/hooks/use-equipment-wishlist"
-import { Tabs as TabsComponent } from "@/components/ui/tabs"
+import { Tabs as TabsComponent, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard')
@@ -88,7 +89,6 @@ export default function DashboardPage() {
   }, [isLoggedIn, productWishlist, equipmentWishlist])
 
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
 
   // Role checks
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
