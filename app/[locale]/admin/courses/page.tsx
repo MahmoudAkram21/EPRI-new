@@ -188,22 +188,32 @@ export default function AdminCoursesPage() {
       filtered = filtered.filter(course => {
         const title = extractLocalizedValue(course.title, locale as string)
         const description = extractLocalizedValue(course.description, locale as string)
+        const instructorName = extractLocalizedValue(course.instructor_name, locale as string)
         return title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          course.instructor_name?.toLowerCase().includes(searchTerm.toLowerCase())
+          instructorName?.toLowerCase().includes(searchTerm.toLowerCase())
       })
     }
 
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(course => course.category === categoryFilter)
+      filtered = filtered.filter(course => {
+        const category = extractLocalizedValue(course.category, locale as string) || String(course.category)
+        return category === categoryFilter
+      })
     }
 
     if (levelFilter !== 'all') {
-      filtered = filtered.filter(course => course.level === levelFilter)
+      filtered = filtered.filter(course => {
+        const level = extractLocalizedValue(course.level, locale as string) || String(course.level)
+        return level === levelFilter
+      })
     }
 
     if (deliveryFilter !== 'all') {
-      filtered = filtered.filter(course => course.delivery_type === deliveryFilter)
+      filtered = filtered.filter(course => {
+        const deliveryType = extractLocalizedValue(course.delivery_type, locale as string) || String(course.delivery_type)
+        return deliveryType === deliveryFilter
+      })
     }
 
     setFilteredCourses(filtered)
@@ -253,17 +263,17 @@ export default function AdminCoursesPage() {
       description: extractLocalizedValue(course.description, locale as string) || '',
       image: course.image || '',
       instructor_name: course.instructor_name || '',
-      category: course.category,
+      category: extractLocalizedValue(course.category, locale as string) || String(course.category),
       price: course.price,
       is_free: course.is_free,
       duration_hours: course.duration_hours,
       duration_weeks: course.duration_weeks,
-      level: course.level,
-      language: course.language,
+      level: extractLocalizedValue(course.level, locale as string) || String(course.level),
+      language: extractLocalizedValue(course.language, locale as string) || String(course.language),
       max_students: course.max_students,
       is_published: course.is_published,
       is_featured: course.is_featured,
-      delivery_type: course.delivery_type,
+      delivery_type: extractLocalizedValue(course.delivery_type, locale as string) || String(course.delivery_type),
       meeting_location: course.meeting_location || '',
       room_number: course.room_number || '',
       building: course.building || '',
@@ -965,12 +975,12 @@ export default function AdminCoursesPage() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline" className={getDeliveryColor(course.delivery_type)}>
-                      {getDeliveryIcon(course.delivery_type)}
-                      <span className="ml-1">{course.delivery_type}</span>
+                    <Badge variant="outline" className={getDeliveryColor(extractLocalizedValue(course.delivery_type, locale as string) || String(course.delivery_type))}>
+                      {getDeliveryIcon(extractLocalizedValue(course.delivery_type, locale as string) || String(course.delivery_type))}
+                      <span className="ml-1">{extractLocalizedValue(course.delivery_type, locale as string) || String(course.delivery_type)}</span>
                     </Badge>
-                    <Badge variant="outline">{course.level}</Badge>
-                    <Badge variant="outline">{course.category}</Badge>
+                    <Badge variant="outline">{extractLocalizedValue(course.level, locale as string) || String(course.level)}</Badge>
+                    <Badge variant="outline">{extractLocalizedValue(course.category, locale as string) || String(course.category)}</Badge>
                   </div>
                   <CardTitle className="text-lg line-clamp-2">{extractLocalizedValue(course.title, locale as string)}</CardTitle>
                   {course.subtitle && (
@@ -983,7 +993,7 @@ export default function AdminCoursesPage() {
               <div className="space-y-3">
                 {course.instructor_name && (
                   <p className="text-sm text-gray-600">
-                    Instructor: {course.instructor_name}
+                    Instructor: {extractLocalizedValue(course.instructor_name, locale as string) || String(course.instructor_name)}
                   </p>
                 )}
                 
