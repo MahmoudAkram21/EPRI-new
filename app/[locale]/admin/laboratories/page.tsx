@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useLocale } from 'next-intl';
 import { Plus, Search, Edit, Trash2, Building, Users, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,19 +28,31 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api';
 
+type TranslationObject = { en: string; ar: string } | string;
+
+// Helper function to extract translation value
+function getTranslation(value: TranslationObject | undefined, locale: string): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value !== null) {
+    return value[locale as 'en' | 'ar'] || value.en || '';
+  }
+  return '';
+}
+
 interface Laboratory {
   id: string;
-  name: string;
-  description?: string;
-  head_name?: string;
-  head_title?: string;
+  name: string | TranslationObject;
+  description?: string | TranslationObject;
+  head_name?: string | TranslationObject;
+  head_title?: string | TranslationObject;
   department?: {
     id: string;
-    name: string;
+    name: string | TranslationObject;
   };
   section?: {
     id: string;
-    name: string;
+    name: string | TranslationObject;
   };
   staff_count: number;
   students_count: number;
@@ -51,16 +64,17 @@ interface Laboratory {
 
 interface Department {
   id: string;
-  name: string;
+  name: string | TranslationObject;
 }
 
 interface DepartmentSection {
   id: string;
-  name: string;
+  name: string | TranslationObject;
 }
 
 export default function LaboratoriesManagement() {
   const { toast } = useToast();
+  const locale = useLocale();
   const [laboratories, setLaboratories] = useState<Laboratory[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [sections, setSections] = useState<DepartmentSection[]>([]);
@@ -143,11 +157,16 @@ export default function LaboratoriesManagement() {
     setDeleteDialogOpen(true);
   };
 
-  const filteredLaboratories = laboratories.filter(lab =>
-    lab.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (lab.description && lab.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (lab.head_name && lab.head_name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredLaboratories = laboratories.filter(lab => {
+    if (!searchTerm) return true;
+    const labName = getTranslation(lab.name, locale as string).toLowerCase();
+    const labDescription = lab.description ? getTranslation(lab.description, locale as string).toLowerCase() : '';
+    const labHeadName = lab.head_name ? getTranslation(lab.head_name, locale as string).toLowerCase() : '';
+    const searchLower = searchTerm.toLowerCase();
+    return labName.includes(searchLower) ||
+      labDescription.includes(searchLower) ||
+      labHeadName.includes(searchLower);
+  });
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -234,7 +253,7 @@ export default function LaboratoriesManagement() {
               <option value="">All Departments</option>
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.id}>
-                  {dept.name}
+                  {getTranslation(dept.name, locale as string)}
                 </option>
               ))}
             </select>
@@ -246,7 +265,7 @@ export default function LaboratoriesManagement() {
               <option value="">All Sections</option>
               {sections.map((section) => (
                 <option key={section.id} value={section.id}>
-                  {section.name}
+                  {getTranslation(section.name, locale as string)}
                 </option>
               ))}
             </select>
@@ -286,10 +305,10 @@ export default function LaboratoriesManagement() {
                     <TableRow key={laboratory.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{laboratory.name}</div>
+                          <div className="font-medium">{getTranslation(laboratory.name, locale as string)}</div>
                           {laboratory.description && (
                             <div className="text-sm text-gray-500 truncate max-w-xs">
-                              {laboratory.description}
+                              {getTranslation(laboratory.description, locale as string)}
                             </div>
                           )}
                         </div>
@@ -297,9 +316,9 @@ export default function LaboratoriesManagement() {
                       <TableCell>
                         {laboratory.head_name ? (
                           <div>
-                            <div className="font-medium">{laboratory.head_name}</div>
+                            <div className="font-medium">{getTranslation(laboratory.head_name, locale as string)}</div>
                             {laboratory.head_title && (
-                              <div className="text-sm text-gray-500">{laboratory.head_title}</div>
+                              <div className="text-sm text-gray-500">{getTranslation(laboratory.head_title, locale as string)}</div>
                             )}
                           </div>
                         ) : (
@@ -309,10 +328,10 @@ export default function LaboratoriesManagement() {
                       <TableCell>
                         <div>
                           {laboratory.department?.name && (
-                            <div className="text-sm">{laboratory.department.name}</div>
+                            <div className="text-sm">{getTranslation(laboratory.department.name, locale as string)}</div>
                           )}
                           {laboratory.section?.name && (
-                            <div className="text-xs text-gray-500">{laboratory.section.name}</div>
+                            <div className="text-xs text-gray-500">{getTranslation(laboratory.section.name, locale as string)}</div>
                           )}
                         </div>
                       </TableCell>
