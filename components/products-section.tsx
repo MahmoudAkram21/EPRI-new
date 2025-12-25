@@ -75,7 +75,7 @@ export function ProductsSection() {
       align: "start",
       slidesToScroll: 1,
     },
-    [Autoplay({ delay: 4000, stopOnInteraction: false })]
+    [Autoplay({ delay: 4000, stopOnInteraction: false })] as any
   )
 
   const scrollPrev = useCallback(() => {

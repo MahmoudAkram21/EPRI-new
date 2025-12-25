@@ -272,7 +272,7 @@ export function LessonPlayerModal({
                     </div>
 
                     {/* Video Controls Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="space-y-2">
                         {/* Progress Bar */}
                         <div className="flex items-center gap-2 text-xs text-white">
@@ -347,9 +347,9 @@ export function LessonPlayerModal({
                 </div>
               ) : (
                 // Locked content
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
                   <div className="text-center p-8 max-w-md">
-                    <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mb-6 mx-auto">
+                    <div className="w-20 h-20 bg-linear-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mb-6 mx-auto">
                       <FileText className="h-10 w-10 text-primary" />
                     </div>
                     <h3 className="font-semibold text-xl mb-3">🔒 Premium Lesson</h3>

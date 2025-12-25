@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const { wishlist: productWishlist } = useProductWishlist()
   const { wishlist: equipmentWishlist } = useEquipmentWishlist()
-  
+
   const [products, setProducts] = useState<any[]>([])
   const [equipments, setEquipments] = useState<any[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
@@ -86,9 +86,14 @@ export default function DashboardPage() {
       }
     }
   }, [isLoggedIn, productWishlist, equipmentWishlist])
-  
-  // Check if user is admin or instructor
-  const isAdmin = user?.role === 'ADMIN'
+
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+
+  // Role checks
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isDepartmentManager = user?.role === 'DEPARTMENT_MANAGER';
   const isInstructor = user?.role === 'INSTRUCTOR'
   const canManageEvents = isAdmin || isInstructor
 
@@ -348,7 +353,7 @@ export default function DashboardPage() {
                 Equipment ({equipmentWishlist.length})
               </TabsTrigger>
             </TabsList>
-            
+
             {/* Courses Tab */}
             <TabsContent value="courses" className="mt-6">
               {wishlistCoursesData.length > 0 ? (

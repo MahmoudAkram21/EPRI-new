@@ -21,9 +21,6 @@ export function HomeServiceCentersPreview() {
       try {
         const response = await apiClient.getServiceCenters({ featured: true })
         const parsed = (response.centers ?? []).map((center: any) => ({
-          equipments: [],
-          products: [],
-          services: [],
           ...center,
           equipments: Array.isArray(center.equipments) ? center.equipments : [],
           products: Array.isArray(center.products) ? center.products : [],

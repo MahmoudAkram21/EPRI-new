@@ -36,19 +36,35 @@ async function getLaboratories() {
 }
 
 export default async function LaboratoriesPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>
   searchParams?: Promise<{ search?: string; department?: string }>
 }) {
+  const { locale } = await params
   const searchParamsResolved = await searchParams
   const laboratories = await getLaboratories()
 
+  // Helper function to extract localized text from JSON fields
+  const getLocalizedText = (field: any, defaultValue: string = ''): string => {
+    if (!field) return defaultValue
+    if (typeof field === 'string') return field
+    if (typeof field === 'object') {
+      return field[locale] || field.en || field.ar || defaultValue
+    }
+    return defaultValue
+  }
+
   // Filter laboratories based on search params
   const filteredLaboratories = laboratories.filter((lab: any) => {
+    const labName = getLocalizedText(lab.name, '')
+    const labDescription = getLocalizedText(lab.description, '')
+    const labResearchAreas = getLocalizedText(lab.research_areas, '')
     const matchesSearch = !searchParamsResolved?.search || 
-      lab.name.toLowerCase().includes(searchParamsResolved.search.toLowerCase()) ||
-      lab.description?.toLowerCase().includes(searchParamsResolved.search.toLowerCase()) ||
-      lab.research_areas?.toLowerCase().includes(searchParamsResolved.search.toLowerCase())
+      labName.toLowerCase().includes(searchParamsResolved.search.toLowerCase()) ||
+      labDescription.toLowerCase().includes(searchParamsResolved.search.toLowerCase()) ||
+      labResearchAreas.toLowerCase().includes(searchParamsResolved.search.toLowerCase())
     
     const matchesDepartment = !searchParamsResolved?.department || 
       lab.department_id === searchParamsResolved.department
@@ -142,7 +158,7 @@ export default async function LaboratoriesPage({
                   <div className="relative h-48 -mt-6">
                     <Image
                       src={laboratory.image || "/placeholder.svg"}
-                      alt={laboratory.name}
+                      alt={getLocalizedText(laboratory.name, 'Laboratory')}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -154,14 +170,14 @@ export default async function LaboratoriesPage({
                     </div>
                     <div className="absolute bottom-4 left-4 right-4">
                       <h3 className="text-xl font-bold text-white mb-2">
-                        {laboratory.name}
+                        {getLocalizedText(laboratory.name, 'Laboratory')}
                       </h3>
                     </div>
                   </div>
 
                   <CardContent className="px-6">
                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4 line-clamp-3">
-                      {laboratory.description}
+                      {getLocalizedText(laboratory.description, '')}
                     </p>
 
                     {/* Laboratory Head */}
@@ -171,7 +187,7 @@ export default async function LaboratoriesPage({
                           <div className="relative h-10 w-10 flex-shrink-0">
                             <Image
                               src={laboratory.head_picture}
-                              alt={laboratory.head_name}
+                              alt={getLocalizedText(laboratory.head_name, 'Laboratory Head')}
                               fill
                               className="object-cover rounded-full"
                             />
@@ -179,10 +195,10 @@ export default async function LaboratoriesPage({
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">
-                            {laboratory.head_academic_title} {laboratory.head_name}
+                            {getLocalizedText(laboratory.head_academic_title, '')} {getLocalizedText(laboratory.head_name, '')}
                           </p>
                           <p className="text-xs text-slate-600 dark:text-slate-400">
-                            {laboratory.head_title}
+                            {getLocalizedText(laboratory.head_title, '')}
                           </p>
                         </div>
                       </div>
@@ -259,7 +275,7 @@ export default async function LaboratoriesPage({
                       <div className="relative h-48 md:h-full">
                         <Image
                           src={laboratory.image || "/placeholder.svg"}
-                          alt={laboratory.name}
+                          alt={getLocalizedText(laboratory.name, 'Laboratory')}
                           fill
                           className="object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
                         />
@@ -282,10 +298,10 @@ export default async function LaboratoriesPage({
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <CardTitle className="text-xl text-slate-900 dark:text-slate-100 mb-2">
-                              {laboratory.name}
+                              {getLocalizedText(laboratory.name, 'Laboratory')}
                             </CardTitle>
                             <CardDescription className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                              {laboratory.description}
+                              {getLocalizedText(laboratory.description, '')}
                             </CardDescription>
                           </div>
                         </div>
@@ -299,7 +315,7 @@ export default async function LaboratoriesPage({
                               <div className="relative h-10 w-10 flex-shrink-0">
                                 <Image
                                   src={laboratory.head_picture}
-                                  alt={laboratory.head_name}
+                                  alt={getLocalizedText(laboratory.head_name, 'Laboratory Head')}
                                   fill
                                   className="object-cover rounded-full"
                                 />
@@ -307,10 +323,10 @@ export default async function LaboratoriesPage({
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">
-                                {laboratory.head_academic_title} {laboratory.head_name}
+                                {getLocalizedText(laboratory.head_academic_title, '')} {getLocalizedText(laboratory.head_name, '')}
                               </p>
                               <p className="text-xs text-slate-600 dark:text-slate-400">
-                                {laboratory.head_title}
+                                {getLocalizedText(laboratory.head_title, '')}
                               </p>
                             </div>
                           </div>
@@ -367,7 +383,7 @@ export default async function LaboratoriesPage({
                           <div>
                             <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2 text-sm">Research Areas</h4>
                             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2">
-                              {laboratory.research_areas}
+                              {getLocalizedText(laboratory.research_areas, '')}
                             </p>
                           </div>
                         )}

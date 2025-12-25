@@ -14,7 +14,7 @@ export function ClientsCarousel() {
       align: "start",
       slidesToScroll: 1,
     },
-    [Autoplay({ delay: 3000, stopOnInteraction: false })],
+    [Autoplay({ delay: 3000, stopOnInteraction: false })] as any
   )
 
   const scrollPrev = useCallback(() => {

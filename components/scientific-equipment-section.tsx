@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { Microscope, ChevronLeft, ChevronRight, Info, ArrowRight } from "lucide-react"
@@ -17,11 +17,11 @@ import { EquipmentWishlistButton } from "@/components/equipment-wishlist-button"
 type TranslationObject = { en: string; ar: string } | string
 
 // Helper function to extract translation value
-function getTranslation(value: TranslationObject | undefined, locale: string): string {
+function getTranslation(value: TranslationObject | string | undefined, locale: string): string {
   if (!value) return ''
   if (typeof value === 'string') return value
-  if (typeof value === 'object' && value !== null) {
-    return value[locale as 'en' | 'ar'] || value.en || ''
+  if (typeof value === 'object' && value !== null && 'en' in value && 'ar' in value) {
+    return (value as { en: string; ar: string })[locale as 'en' | 'ar'] || (value as { en: string; ar: string }).en || ''
   }
   return ''
 }
@@ -46,7 +46,7 @@ export function ScientificEquipmentSection() {
       align: "start",
       slidesToScroll: 1,
     },
-    [Autoplay({ delay: 4000, stopOnInteraction: false })]
+    [Autoplay({ delay: 4000, stopOnInteraction: false })] as any
   )
 
   const scrollPrev = useCallback(() => {
@@ -62,9 +62,6 @@ export function ScientificEquipmentSection() {
       try {
         const response = await apiClient.getServiceCenters()
         const parsed = (response.centers ?? []).map((center: any) => ({
-          equipments: [],
-          products: [],
-          services: [],
           ...center,
           name: getTranslation(center.name, locale),
           headline: center.headline ? getTranslation(center.headline, locale) : undefined,
@@ -230,7 +227,12 @@ export function ScientificEquipmentSection() {
             <>
               <div ref={emblaRef} className="overflow-hidden">
                 <div className="flex gap-6 py-2">
-                  {filteredEquipment.map((equipment) => (
+                  {filteredEquipment.map((equipment: ServiceCenterEquipment & { centerName: string; centerSlug: string; centerType?: string }) => {
+                    const nameValue: TranslationObject | string | undefined = equipment.name as TranslationObject | string | undefined
+                    const translatedName: string = getTranslation(nameValue, locale)
+                    const equipmentName: string = String(translatedName)
+                    const centerName: string = String(equipment.centerName || '')
+                    return (
                 <div
                   key={equipment.id || equipment.name}
                   className="flex-[0_0_100%] min-w-0 md:flex-[0_0_calc(33.333%-1rem)] pl-4"
@@ -241,7 +243,7 @@ export function ScientificEquipmentSection() {
                   <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
                     <img
                       src={equipment.image || "/placeholder.svg"}
-                      alt={typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
+                      alt={equipmentName}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -251,7 +253,7 @@ export function ScientificEquipmentSection() {
                 <div className="absolute top-2 right-2 z-10">
                   <EquipmentWishlistButton
                     equipmentId={equipment.id || String(equipment.name)}
-                    equipmentName={typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
+                    equipmentName={equipmentName}
                     variant="ghost"
                     size="icon"
                     className="bg-white/90 hover:bg-white dark:bg-slate-900/90 dark:hover:bg-slate-900"
@@ -264,12 +266,12 @@ export function ScientificEquipmentSection() {
                     <div className="space-y-3">
                       {/* Center Badge */}
                       <Badge variant="secondary" className="text-xs">
-                        {equipment.centerName}
+                        {centerName}
                       </Badge>
 
                       {/* Equipment Name */}
                       <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors line-clamp-2">
-                        {typeof equipment.name === 'string' ? equipment.name : getTranslation(equipment.name, locale)}
+                        {String(equipmentName ?? '')}
                       </h3>
 
                     {/* Description */}
@@ -277,7 +279,7 @@ export function ScientificEquipmentSection() {
                       <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-3">
                         {typeof (equipment.description || equipment.details) === 'string' 
                           ? (equipment.description || equipment.details)
-                          : getTranslation(equipment.description || equipment.details, locale)}
+                          : getTranslation((equipment.description || equipment.details) as TranslationObject, locale)}
                       </p>
                     )}
 
@@ -319,7 +321,8 @@ export function ScientificEquipmentSection() {
                 </CardContent>
                     </Card>
                 </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             </>

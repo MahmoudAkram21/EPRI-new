@@ -21,6 +21,12 @@ interface StaffMember {
   bio?: string
   email?: string
   phone?: string
+  laboratories?: Array<{
+    id: string
+    name: any
+    position?: any
+  }>
+  isDepartmentStaff?: boolean
 }
 
 interface DepartmentStaffFilterProps {
@@ -36,23 +42,23 @@ export function DepartmentStaffFilter({ staff }: DepartmentStaffFilterProps) {
     const positions = staff
       .map((member) => {
         if (!member.academic_position) return null
-        return typeof member.academic_position === 'string' 
-          ? member.academic_position 
+        return typeof member.academic_position === 'string'
+          ? member.academic_position
           : getTranslation(member.academic_position, locale)
       })
       .filter((pos): pos is string => pos !== null && pos !== '')
-    
+
     return Array.from(new Set(positions)).sort()
   }, [staff, locale])
 
   // Filter staff by selected degree
   const filteredStaff = useMemo(() => {
     if (selectedDegree === "all") return staff
-    
+
     return staff.filter((member) => {
       if (!member.academic_position) return false
-      const position = typeof member.academic_position === 'string' 
-        ? member.academic_position 
+      const position = typeof member.academic_position === 'string'
+        ? member.academic_position
         : getTranslation(member.academic_position, locale)
       return position.toLowerCase().includes(selectedDegree.toLowerCase())
     })
@@ -100,21 +106,21 @@ export function DepartmentStaffFilter({ staff }: DepartmentStaffFilterProps) {
       {filteredStaff.length > 0 ? (
         <div className="grid md:grid-cols-2 gap-6">
           {filteredStaff.map((member, index) => {
-            const memberName = typeof member.name === 'string' 
-              ? member.name 
+            const memberName = typeof member.name === 'string'
+              ? member.name
               : getTranslation(member.name, locale)
-            const memberTitle = member.title 
+            const memberTitle = member.title
               ? (typeof member.title === 'string' ? member.title : getTranslation(member.title, locale))
               : undefined
             const academicPosition = member.academic_position
-              ? (typeof member.academic_position === 'string' 
-                  ? member.academic_position 
-                  : getTranslation(member.academic_position, locale))
+              ? (typeof member.academic_position === 'string'
+                ? member.academic_position
+                : getTranslation(member.academic_position, locale))
               : undefined
             const adminPosition = member.current_admin_position
               ? (typeof member.current_admin_position === 'string'
-                  ? member.current_admin_position
-                  : getTranslation(member.current_admin_position, locale))
+                ? member.current_admin_position
+                : getTranslation(member.current_admin_position, locale))
               : undefined
             const memberBio = member.bio
               ? (typeof member.bio === 'string' ? member.bio : getTranslation(member.bio, locale))
@@ -125,7 +131,7 @@ export function DepartmentStaffFilter({ staff }: DepartmentStaffFilterProps) {
                 <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 group overflow-hidden relative">
                   {/* Decorative gradient overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-emerald-500/0 group-hover:from-blue-500/5 group-hover:to-emerald-500/5 transition-all duration-300 pointer-events-none"></div>
-                  
+
                   <CardHeader className="relative z-10 pb-4">
                     <div className="flex items-start gap-4">
                       {/* Enhanced Profile Picture */}
@@ -142,7 +148,7 @@ export function DepartmentStaffFilter({ staff }: DepartmentStaffFilterProps) {
                         {/* Status indicator */}
                         <div className="absolute bottom-0 right-0 h-5 w-5 bg-green-500 border-2 border-white dark:border-slate-800 rounded-full shadow-sm"></div>
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {memberName}
@@ -165,11 +171,27 @@ export function DepartmentStaffFilter({ staff }: DepartmentStaffFilterProps) {
                               {adminPosition}
                             </Badge>
                           )}
+                          {/* Laboratory badges */}
+                          {member.laboratories && member.laboratories.length > 0 && (
+                            member.laboratories.map((lab) => {
+                              const labName = getTranslation(lab.name, locale)
+                              const labPosition = lab.position ? getTranslation(lab.position, locale) : null
+                              return (
+                                <Badge
+                                  key={lab.id}
+                                  variant="outline"
+                                  className="text-xs font-semibold border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2.5 py-1"
+                                >
+                                  🔬 {labName}{labPosition && ` - ${labPosition}`}
+                                </Badge>
+                              )
+                            })
+                          )}
                         </div>
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="relative z-10 space-y-4">
                     {memberBio && (
                       <div className="relative">
@@ -179,7 +201,7 @@ export function DepartmentStaffFilter({ staff }: DepartmentStaffFilterProps) {
                         <div className="absolute bottom-0 right-0 w-20 h-6 bg-gradient-to-l from-transparent to-white dark:to-slate-800 pointer-events-none"></div>
                       </div>
                     )}
-                    
+
                     <div className="flex flex-col gap-2.5">
                       {member.email && (
                         <a
@@ -201,17 +223,17 @@ export function DepartmentStaffFilter({ staff }: DepartmentStaffFilterProps) {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="pt-3 border-t-2 border-slate-200 dark:border-slate-700">
-                      <Link 
+                      <Link
                         href={`/staff/${member.id}`}
                         className="w-full block"
                       >
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all duration-300 font-semibold group/btn"
                         >
-                            <span className="flex items-center justify-center gap-2">
+                          <span className="flex items-center justify-center gap-2">
                             View Profile
                             <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
                           </span>

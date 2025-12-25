@@ -7,7 +7,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations, useLocale } from 'next-intl';
-import { Menu, X, User, LogOut, Shield, ChevronDown, Building2, MapPin, ArrowUpRight } from "lucide-react";
+import { Menu, X, User, LogOut, Shield, ChevronDown, ChevronRight, Building2, MapPin, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/user-context";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -17,8 +17,14 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { apiClient } from "@/lib/api";
+import { MobileMenuDrilldown } from "@/components/mobile-menu-drilldown";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchConference, selectShouldFetchConference, clearConference, type ConferenceState } from "@/store/slices/conferenceSlice";
 import { Service } from "@/lib/services";
@@ -41,10 +47,12 @@ export function Header() {
   const t = useTranslations();
   const locale = useLocale();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null); // Current submenu view
+  const [menuStack, setMenuStack] = useState<string[]>([]); // Navigation breadcrumb
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [deptSections, setDeptSections] = useState<Array<{ id: string; name: string | TranslationObject }>>([]);
-  const [departments, setDepartments] = useState<Array<{ id: string; name: string | TranslationObject; section_id: string; icon?: string }>>([]);
+  const [departments, setDepartments] = useState<Array<{ id: string; name: string | TranslationObject; section_id: string; icon?: string; laboratories?: any[] }>>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [serviceCenters, setServiceCenters] = useState<ServiceCenter[]>([]);
   const [expandedMobileSection, setExpandedMobileSection] = useState<string | null>(null);
@@ -108,12 +116,31 @@ export function Header() {
         const deptRes = await apiClient.getDepartments();
         console.log('Loaded departments:', deptRes.departments?.length || 0);
         if (deptRes.departments?.length > 0) {
-          setDepartments(deptRes.departments.map((d: any) => ({
-            id: d.id,
-            name: getTranslation(d.name, locale),
-            section_id: d.section_id,
-            icon: d.icon
-          })));
+          // Fetch laboratories for each department
+          const departmentsWithLabs = await Promise.all(
+            deptRes.departments.map(async (d: any) => {
+              try {
+                const labsRes = await apiClient.getLaboratories({ departmentId: d.id });
+                return {
+                  id: d.id,
+                  name: getTranslation(d.name, locale),
+                  section_id: d.section_id,
+                  icon: d.icon,
+                  laboratories: labsRes.laboratories || []
+                };
+              } catch (error) {
+                console.error(`Error loading laboratories for department ${d.id}:`, error);
+                return {
+                  id: d.id,
+                  name: getTranslation(d.name, locale),
+                  section_id: d.section_id,
+                  icon: d.icon,
+                  laboratories: []
+                };
+              }
+            })
+          );
+          setDepartments(departmentsWithLabs);
         } else {
           // If API returns empty departments, create fallback departments for each section
           console.log('API returned empty departments, creating fallback');
@@ -291,7 +318,29 @@ export function Header() {
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
+    setActiveMenu(null);
+    setMenuStack([]);
   }, [pathname]);
+
+  // Mobile menu navigation functions
+  const goToSubmenu = (menuName: string) => {
+    setMenuStack([...menuStack, activeMenu].filter(Boolean) as string[]);
+    setActiveMenu(menuName);
+  };
+
+  const goBack = () => {
+    const newStack = [...menuStack];
+    const previousMenu = newStack.pop();
+    setMenuStack(newStack);
+    setActiveMenu(previousMenu || null);
+  };
+
+  const resetMobileMenu = () => {
+    setActiveMenu(null);
+    setMenuStack([]);
+    setMobileMenuOpen(false);
+  };
+
 
   const container = {
     hidden: { opacity: 1 },
@@ -369,7 +418,7 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Departments Simple Menu */}
+              {/* Departments Mega Menu with Nested Dropdowns */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -392,26 +441,57 @@ export function Header() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  className="w-64 max-h-[500px] overflow-y-auto"
-                  align="end"
+                  className="w-72 max-h-[600px] overflow-y-auto"
+                  align="start"
                 >
                   <DropdownMenuItem asChild>
-                    <Link href="/departments" className="w-full">
+                    <Link href="/departments" className="font-semibold">
                       All Departments
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+
                   {departments.length > 0 ? (
                     departments.map((dept) => (
-                      <DropdownMenuItem key={dept.id} asChild>
-                        <Link
-                          href={`/departments/${dept.id}`}
-                          className="w-full"
-                        >
+                      <DropdownMenuSub key={dept.id}>
+                        <DropdownMenuSubTrigger className="cursor-pointer">
                           {dept.icon && <span className="mr-2">{dept.icon}</span>}
-                          {typeof dept.name === 'string' ? dept.name : getTranslation(dept.name, locale)}
-                        </Link>
-                      </DropdownMenuItem>
+                          <span>{typeof dept.name === 'string' ? dept.name : getTranslation(dept.name, locale)}</span>
+                        </DropdownMenuSubTrigger>
+
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent className="w-64" sideOffset={8}>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/departments/${dept.id}`} className="font-medium">
+                                📋 Department Overview
+                              </Link>
+                            </DropdownMenuItem>
+
+                            {dept.laboratories && dept.laboratories.length > 0 && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel className="text-xs">
+                                  🔬 Laboratories
+                                </DropdownMenuLabel>
+                                {dept.laboratories.slice(0, 5).map((lab: any) => (
+                                  <DropdownMenuItem key={lab.id} asChild>
+                                    <Link href={`/laboratories/${lab.id}`}>
+                                      {typeof lab.name === 'string' ? lab.name : getTranslation(lab.name, locale)}
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ))}
+                                {dept.laboratories.length > 5 && (
+                                  <DropdownMenuItem asChild>
+                                    <Link href={`/departments/${dept.id}?tab=laboratories`} className="text-primary">
+                                      View All Labs ({dept.laboratories.length}) →
+                                    </Link>
+                                  </DropdownMenuItem>
+                                )}
+                              </>
+                            )}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
                     ))
                   ) : (
                     <DropdownMenuItem disabled>
@@ -744,7 +824,7 @@ export function Header() {
             </div>
           </nav>
 
-          <div className="hidden lg:flex items-center gap-2 xl:gap-4 ml-2 xl:ml-4 flex-shrink-0">
+          <div className="hidden lg:flex items-center gap-2 xl:gap-4 ml-2 xl:ml-4 shrink-0">
             <LanguageSwitcher />
             {isLoggedIn ? (
               <DropdownMenu>
@@ -766,7 +846,7 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard/wishlist">{t('nav.myWishlist')}</Link>
                   </DropdownMenuItem>
-                  {user?.role === 'ADMIN' && (
+                  {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
@@ -798,7 +878,7 @@ export function Header() {
 
           {/* Mobile Menu Button */}
           <button
-            className="lg:hidden flex-shrink-0 p-2 -mr-2"
+            className="lg:hidden shrink-0 p-2 -mr-2"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
             aria-expanded={mobileMenuOpen}
@@ -814,713 +894,22 @@ export function Header() {
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="lg:hidden py-4 sm:py-6 border-t border-border/50 max-h-[calc(100vh-5rem)] overflow-y-auto">
-            <nav className="flex flex-col space-y-1">
-
-              {/* About Section */}
-              <div className={`py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider `}>
-                {t('nav.about')}
-              </div>
-              {aboutLinks.map((link) => {
-                const isActive = isActiveLink(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                      }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-
-
-              {/* News & Events Section */}
-              <div className="py-1 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {t('nav.newsEvents')}
-              </div>
-              {newsLinks.map((link) => {
-                const isActive = isActiveLink(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                      }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-
-              {/* Training Center - Mobile */}
-              <Link
-                href="/training-center"
-                className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/training-center')
-                  ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                  : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t('nav.trainingCenter')}
-              </Link>
-
-              {/* EJP Journal - Mobile */}
-              <Link
-                href="/ejp-journal"
-                className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/ejp-journal')
-                  ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                  : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t('nav.ejpJournal')}
-              </Link>
-
-              {/* Innovation and Entrepreneurship - Mobile */}
-              <div className="py-2">
-                <div className="px-8 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  {t('nav.innovation.title')}
-                </div>
-                <Link
-                  href="/innovation-and-entrepreneurship"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.innovation.overview')}
-                </Link>
-                <Link
-                  href="/innovation-and-entrepreneurship/technology-transfer-tto"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/technology-transfer-tto')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.innovation.technologyTransferTTO')}
-                </Link>
-                <Link
-                  href="/innovation-and-entrepreneurship/grant-international-cooperation-gico"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/grant-international-cooperation-gico')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.innovation.grantInternationalCooperationGICO')}
-                </Link>
-                <Link
-                  href="/innovation-and-entrepreneurship/technology-innovation-support-tisc"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/technology-innovation-support-tisc')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.innovation.technologyInnovationSupportTISC')}
-                </Link>
-                <Link
-                  href="/innovation-and-entrepreneurship/ip-management"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/ip-management')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.innovation.ipManagement')}
-                </Link>
-                <Link
-                  href="/innovation-and-entrepreneurship/e-club"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/e-club')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.innovation.eClub')}
-                </Link>
-                <Link
-                  href="/innovation-and-entrepreneurship/incubators-startups"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/incubators-startups')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.innovation.incubatorsStartups')}
-                </Link>
-                <Link
-                  href="/innovation-and-entrepreneurship/patent"
-                  className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg block ${isActiveLink('/innovation-and-entrepreneurship/patent')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.innovation.patent')}
-                </Link>
-              </div>
-
-              {/* Library & Scientific Situation Section */}
-              <div className="py-1 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {t('nav.library')}
-              </div>
-              {libraryLinks.map((link) => {
-                const isActive = isActiveLink(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                      }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-              <div className="pl-12 py-1 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Library Sub-sections
-              </div>
-              {librarySubLinks.map((link) => {
-                const isActive = isActiveLink(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`py-2 px-12 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                      }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-
-              {/* More Section */}
-              <div className="py-1 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                More
-              </div>
-              {moreLinks.map((link) => {
-                const isActive = isActiveLink(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                      }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-
-              {/* Mobile Departments Section */}
-              <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Departments
-              </div>
-              {deptSections.length > 0 ? (
-                deptSections.map((section) => {
-                  const sectionDepartments = departments.filter(dept => dept.section_id === section.id);
-                  const isExpanded = expandedMobileSection === section.id;
-
-                  return (
-                    <div key={section.id} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Link
-                          href={`/departments?sectionId=${section.id}`}
-                          className={`flex-1 block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/departments')
-                            ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                            : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {typeof section.name === 'string' ? section.name : getTranslation(section.name, locale)}
-                        </Link>
-                        {sectionDepartments.length > 0 && (
-                          <button
-                            onClick={() => setExpandedMobileSection(isExpanded ? null : section.id)}
-                            className="px-2 py-1 text-muted-foreground hover:text-primary transition-colors"
-                            aria-label={isExpanded ? "Collapse" : "Expand"}
-                          >
-                            <ChevronDown
-                              className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                            />
-                          </button>
-                        )}
-                      </div>
-                      {isExpanded && sectionDepartments.length > 0 && (
-                        <div className="pl-8 space-y-2">
-                          {sectionDepartments.map((dept) => (
-                            <div key={dept.id} className="space-y-1">
-                              <Link
-                                href={`/departments?sectionId=${section.id}&departmentId=${dept.id}`}
-                                className={`block py-1.5 px-4 text-xs font-medium transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}`)
-                                  ? "text-primary font-semibold"
-                                  : "text-foreground hover:text-primary"
-                                  }`}
-                                onClick={() => setMobileMenuOpen(false)}
-                              >
-                                {dept.icon && <span className="mr-2">{dept.icon}</span>}
-                                {typeof dept.name === 'string' ? dept.name : getTranslation(dept.name, locale)}
-                              </Link>
-                              <div className="pl-6 space-y-1">
-                                <Link
-                                  href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=research-areas`}
-                                  className={`block py-1 px-4 text-xs transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=research-areas`)
-                                    ? "text-primary font-semibold"
-                                    : "text-muted-foreground hover:text-primary"
-                                    }`}
-                                  onClick={() => setMobileMenuOpen(false)}
-                                >
-                                  Research Areas
-                                </Link>
-                                <Link
-                                  href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=projects`}
-                                  className={`block py-1 px-4 text-xs transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=projects`)
-                                    ? "text-primary font-semibold"
-                                    : "text-muted-foreground hover:text-primary"
-                                    }`}
-                                  onClick={() => setMobileMenuOpen(false)}
-                                >
-                                  Projects
-                                </Link>
-                                <Link
-                                  href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=laboratories`}
-                                  className={`block py-1 px-4 text-xs transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=laboratories`)
-                                    ? "text-primary font-semibold"
-                                    : "text-muted-foreground hover:text-primary"
-                                    }`}
-                                  onClick={() => setMobileMenuOpen(false)}
-                                >
-                                  Laboratories
-                                </Link>
-                                <Link
-                                  href={`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=staff`}
-                                  className={`block py-1 px-4 text-xs transition-colors ${isActiveLink(`/departments?sectionId=${section.id}&departmentId=${dept.id}&tab=staff`)
-                                    ? "text-primary font-semibold"
-                                    : "text-muted-foreground hover:text-primary"
-                                    }`}
-                                  onClick={() => setMobileMenuOpen(false)}
-                                >
-                                  Staff
-                                </Link>
-                              </div>
-                            </div>
-                          ))}
-                          <div className="pt-2">
-                            <Button
-                              asChild
-                              size="sm"
-                              variant="outline"
-                              className="w-full text-xs"
-                            >
-                              <Link
-                                href={`/departments?sectionId=${section.id}`}
-                                onClick={() => setMobileMenuOpen(false)}
-                              >
-                                See All Departments
-                              </Link>
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <Link
-                  href="/departments"
-                  className={`py-3 px-4 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/departments') || isActiveLink('/laboratories')
-                    ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                    : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Departments
-                </Link>
-              )}
-
-              {/* Mobile Centers & Units Section */}
-              <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Centers & Units
-              </div>
-
-              {/* Centers */}
-              <div className="mb-2">
-                <div className="py-2 px-4 text-xs font-semibold text-muted-foreground">
-                  Centers
-                </div>
-                {serviceCenters
-                  .filter(c => (c.type || 'center') === 'center')
-                  .slice(0, 4)
-                  .map((center) => (
-                    <div key={center.id} className="space-y-1">
-                      <Link
-                        href={`/service-centers/${center.slug}`}
-                        className={`block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink(`/service-centers/${center.slug}`)
-                          ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                          : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                          }`}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {typeof center.name === 'string' ? center.name : getTranslation(center.name, locale)}
-                      </Link>
-                      <div className="pl-12 space-y-1">
-                        <Link
-                          href={`/service-centers/${center.slug}#overview`}
-                          className={`block py-1 px-4 text-xs transition-colors ${pathname.includes(`/service-centers/${center.slug}`) && (currentHash === '#overview' || (!currentHash && pathname === `/service-centers/${center.slug}`))
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Overview
-                        </Link>
-                        <Link
-                          href={`/service-centers/${center.slug}#lab-methodology`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#lab-methodology'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Lab Methodology & Services
-                        </Link>
-                        <Link
-                          href={`/service-centers/${center.slug}#events`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#events'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Events
-                        </Link>
-                        <Link
-                          href={`/service-centers/${center.slug}#training`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#training'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Training & E-Learning
-                        </Link>
-                        <Link
-                          href={`/service-centers/${center.slug}#products`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#products'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Products
-                        </Link>
-                        <Link
-                          href={`/service-centers/${center.slug}#equipment`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#equipment'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Equipment List
-                        </Link>
-                        <Link
-                          href={`/service-centers/${center.slug}#staff`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#staff'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Staff
-                        </Link>
-                        <Link
-                          href={`/service-centers/${center.slug}#work-volume`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#work-volume'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Work Volume & Company Activity
-                        </Link>
-                        <Link
-                          href={`/service-centers/${center.slug}#future-prospects`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#future-prospects'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Future Prospects
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                {serviceCenters.filter(c => (c.type || 'center') === 'center').length > 4 && (
-                  <div className="mt-2 px-8">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs text-primary hover:text-primary hover:bg-primary/10"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Link href="/service-centers?type=center">
-                        See All Centers
-                      </Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Units */}
-              <div>
-                <div className="py-2 px-4 text-xs font-semibold text-muted-foreground">
-                  Units
-                </div>
-                {serviceCenters
-                  .filter(c => c.type === 'unit')
-                  .slice(0, 4)
-                  .map((unit) => (
-                    <div key={unit.id} className="space-y-1">
-                      <Link
-                        href={`/service-centers/${unit.slug}`}
-                        className={`block py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink(`/service-centers/${unit.slug}`)
-                          ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                          : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                          }`}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {typeof unit.name === 'string' ? unit.name : getTranslation(unit.name, locale)}
-                      </Link>
-                      <div className="pl-12 space-y-1">
-                        <Link
-                          href={`/service-centers/${unit.slug}#overview`}
-                          className={`block py-1 px-4 text-xs transition-colors ${pathname.includes(`/service-centers/${unit.slug}`) && (currentHash === '#overview' || (!currentHash && pathname === `/service-centers/${unit.slug}`))
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Overview
-                        </Link>
-                        <Link
-                          href={`/service-centers/${unit.slug}#lab-methodology`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#lab-methodology'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Lab Methodology & Services
-                        </Link>
-                        <Link
-                          href={`/service-centers/${unit.slug}#events`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#events'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Events
-                        </Link>
-                        <Link
-                          href={`/service-centers/${unit.slug}#training`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#training'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Training & E-Learning
-                        </Link>
-                        <Link
-                          href={`/service-centers/${unit.slug}#products`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#products'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Products
-                        </Link>
-                        <Link
-                          href={`/service-centers/${unit.slug}#equipment`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#equipment'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Equipment List
-                        </Link>
-                        <Link
-                          href={`/service-centers/${unit.slug}#staff`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#staff'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Staff
-                        </Link>
-                        <Link
-                          href={`/service-centers/${unit.slug}#work-volume`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#work-volume'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Work Volume & Company Activity
-                        </Link>
-                        <Link
-                          href={`/service-centers/${unit.slug}#future-prospects`}
-                          className={`block py-1 px-4 text-xs transition-colors ${currentHash === '#future-prospects'
-                            ? "text-primary font-semibold"
-                            : "text-muted-foreground hover:text-primary"
-                            }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Future Prospects
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                {serviceCenters.filter(c => c.type === 'unit').length > 4 && (
-                  <div className="mt-2 px-8">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs text-primary hover:text-primary hover:bg-primary/10"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Link href="/service-centers?type=unit">
-                        See All Units
-                      </Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Mobile Services Link */}
-              <Link
-                href="/services"
-                className={`py-3 px-4 text-sm font-medium transition-all duration-200 rounded-lg ${isActiveLink('/services')
-                  ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                  : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                  }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Services
-              </Link>
-
-              {/* News Section */}
-              <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                News
-              </div>
-              {newsLinks.map((link) => {
-                const isActive = isActiveLink(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                      }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-
-              {/* Run Section */}
-              <div className="py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Run
-              </div>
-              {runLinks.map((link) => {
-                const isActive = isActiveLink(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`py-2 px-8 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
-                      ? "text-primary bg-primary/10 font-semibold border-l-2 border-primary"
-                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                      }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-
-              <div className="flex flex-col gap-3 pt-6 mt-6 border-t border-border/50">
-                {isLoggedIn ? (
-                  <>
-                    <Button variant="ghost" asChild>
-                      <Link href="/dashboard">Dashboard</Link>
-                    </Button>
-                    <Button variant="ghost" asChild>
-                      <Link href="/dashboard/my-courses">My Courses</Link>
-                    </Button>
-                    <Button variant="ghost" asChild>
-                      <Link href="/dashboard/wishlist">My Wishlist</Link>
-                    </Button>
-                    {user?.role === 'ADMIN' && (
-                      <Button variant="ghost" asChild className="text-primary">
-                        <Link href="/admin">
-                          <Shield className="h-4 w-4 mr-2" />
-                          Admin Dashboard
-                        </Link>
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={logout}
-                      className="bg-transparent text-accent"
-                    >
-                      Logout
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="ghost" asChild>
-                      <Link href="/login">Login</Link>
-                    </Button>
-                    <Button asChild className="bg-primary hover:bg-primary/90">
-                      <Link href="/register">Get Started</Link>
-                    </Button>
-                  </>
-                )}
-              </div>
-            </nav>
+            <MobileMenuDrilldown
+              activeMenu={activeMenu}
+              goToSubmenu={goToSubmenu}
+              goBack={goBack}
+              resetMobileMenu={resetMobileMenu}
+              isActiveLink={isActiveLink}
+              aboutLinks={aboutLinks}
+              newsLinks={newsLinks}
+              libraryLinks={libraryLinks}
+              departments={departments}
+              serviceCenters={serviceCenters}
+            />
           </div>
         )}
       </div>
     </header>
   );
 }
+

@@ -65,7 +65,7 @@ export default async function HomePage({
       /> */}
 
         {/* 1. Events & Ads Section */}
-        <Section>
+        <Section> 
           <AnimatedSection animation="fade-up">
             <div className="flex items-center justify-between mb-12">
               <div>

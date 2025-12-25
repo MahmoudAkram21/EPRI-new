@@ -50,7 +50,7 @@ export function LessonItem({ lesson, courseId, sectionId, isEnrolled }: LessonIt
       disabled={isLocked && !lesson.isPreview}
     >
       <div className="flex items-center gap-3 flex-1 text-left">
-        <div className={`flex-shrink-0 ${isLocked ? "text-muted-foreground" : "text-primary"}`}>
+        <div className={`shrink-0 ${isLocked ? "text-muted-foreground" : "text-primary"}`}>
           {isComplete ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : getLessonIcon()}
         </div>
         <div className="flex-1">

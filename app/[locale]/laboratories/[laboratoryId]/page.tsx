@@ -8,18 +8,18 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import { 
-  Mail, 
-  Phone, 
-  GraduationCap, 
-  BookOpen, 
-  Award, 
-  Microscope, 
-  FlaskConical, 
-  Users, 
-  ExternalLink, 
-  MapPin, 
-  Calendar, 
+import {
+  Mail,
+  Phone,
+  GraduationCap,
+  BookOpen,
+  Award,
+  Microscope,
+  FlaskConical,
+  Users,
+  ExternalLink,
+  MapPin,
+  Calendar,
   Building,
   Globe,
   FileText,
@@ -34,13 +34,73 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 
-async function getLaboratory(laboratoryId: string) {
+// Helper function to convert text to slug format
+function toSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+// Helper function to extract text from localized JSON
+function extractText(value: any, locale: string = 'en'): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object') {
+    return value[locale] || value.en || value.ar || ''
+  }
+  return ''
+}
+
+async function getLaboratory(laboratoryId: string, locale: string = 'en') {
   try {
-    const response = await apiClient.getLaboratory(laboratoryId)
-    return response.laboratory
-  } catch (error) {
+    // First, try to fetch by ID (in case it's a valid UUID)
+    const response = await apiClient.get(`/laboratories/${laboratoryId}`)
+    console.log("Laboratory response:", response)
+    // Backend returns { laboratory: {...} }
+    return response?.laboratory || response
+  } catch (error: any) {
+    // If 404 and the ID doesn't look like a UUID, try to find by slug/name
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(laboratoryId)
+    const is404 = error?.message?.includes('404') || 
+                  error?.message?.includes('not found') ||
+                  error?.message?.includes('Not Found')
+    
+    if (!isUUID && is404) {
+      try {
+        console.log("ID lookup failed, trying to find by slug:", laboratoryId)
+        // Fetch all laboratories and find one matching the slug
+        const allLabsResponse = await apiClient.getLaboratories()
+        const laboratories = allLabsResponse.laboratories || []
+        
+        // Try to find a laboratory whose name (when slugified) matches the parameter
+        const matchingLab = laboratories.find((lab: any) => {
+          const labName = extractText(lab.name, locale)
+          const labSlug = toSlug(labName)
+          return labSlug === laboratoryId || lab.id === laboratoryId
+        })
+        
+        if (matchingLab) {
+          console.log("Found laboratory by slug:", matchingLab.id)
+          return matchingLab
+        }
+      } catch (searchError) {
+        console.warn("Failed to search laboratories by slug:", searchError)
+      }
+    }
+    
     console.warn("Failed to fetch laboratory:", error)
     return null
+  }
+}
+
+async function getLaboratoryStaff(laboratoryId: string) {
+  try {
+    const response = await apiClient.get(`/laboratories/${laboratoryId}/staff`)
+    return response.data.staff || []
+  } catch (error) {
+    console.warn("Failed to fetch laboratory staff:", error)
+    return []
   }
 }
 
@@ -48,21 +108,31 @@ export default async function LaboratoryDetailPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ laboratoryId: string }>
+  params: Promise<{ laboratoryId: string; locale: string }>
   searchParams?: Promise<{ tab?: string }>
 }) {
-  const { laboratoryId } = await params
+  const { laboratoryId, locale } = await params
   const searchParamsResolved = await searchParams
-  
-  const laboratory = await getLaboratory(laboratoryId)
+
+  const laboratory = await getLaboratory(laboratoryId, locale)
 
   if (!laboratory) {
     notFound()
   }
 
-  const initialTab = ["overview", "head", "facilities", "research", "contact"].includes(searchParamsResolved?.tab || "")
-    ? (searchParamsResolved!.tab as "overview" | "head" | "facilities" | "research" | "contact")
+  const initialTab = ["overview", "head", "facilities", "research", "staff", "contact"].includes(searchParamsResolved?.tab || "")
+    ? (searchParamsResolved!.tab as "overview" | "head" | "facilities" | "research" | "staff" | "contact")
     : "overview"
+
+  // Helper function to extract localized text from JSON fields
+  const getLocalizedText = (field: any, defaultValue: string = ''): string => {
+    if (!field) return defaultValue
+    if (typeof field === 'string') return field
+    if (typeof field === 'object') {
+      return field[locale] || field.en || field.ar || defaultValue
+    }
+    return defaultValue
+  }
 
   return (
     <PageContainer>
@@ -71,21 +141,21 @@ export default async function LaboratoryDetailPage({
         {/* Laboratory background image with overlay */}
         {laboratory.image && (
           <div className="absolute inset-0">
-            <div 
+            <div
               className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5 dark:opacity-10"
               style={{ backgroundImage: `url('${laboratory.image}')` }}
             ></div>
             <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-white/95 to-slate-50/90 dark:from-slate-900/90 dark:via-slate-800/95 dark:to-slate-900/90"></div>
           </div>
         )}
-        
+
         {/* Animated background elements */}
         <div className="absolute inset-0">
           {/* Floating animated orbs */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-50/30 to-transparent dark:from-blue-900/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
           <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-emerald-100/40 to-transparent dark:from-emerald-700/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }}></div>
           <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-gradient-to-bl from-purple-50/20 to-transparent dark:from-purple-900/10 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }}></div>
-          
+
           {/* Floating particles */}
           <div className="absolute top-20 left-1/4 w-2 h-2 bg-blue-400/30 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}></div>
           <div className="absolute top-32 right-1/3 w-1.5 h-1.5 bg-emerald-400/40 rounded-full animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }}></div>
@@ -108,14 +178,14 @@ export default async function LaboratoryDetailPage({
                   </Badge>
                 )}
               </div>
-              
+
               <AnimatedSection animation="fade-up">
                 <div className="text-6xl mb-4 filter drop-shadow-lg">🧪</div>
                 <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-emerald-800 dark:from-slate-100 dark:via-blue-200 dark:to-emerald-200 bg-clip-text text-transparent leading-tight">
-                  {laboratory.name}
+                  {getLocalizedText(laboratory.name, 'Laboratory')}
                 </h1>
                 <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 leading-relaxed font-light max-w-3xl">
-                  {laboratory.description}
+                  {getLocalizedText(laboratory.description, '')}
                 </p>
               </AnimatedSection>
 
@@ -154,19 +224,8 @@ export default async function LaboratoryDetailPage({
 
               {/* Quick Actions */}
               <div className="flex flex-wrap gap-3 mt-8">
-                {laboratory.website && (
-                  <a 
-                    href={laboratory.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                  >
-                    <Globe className="h-4 w-4" />
-                    Visit Website
-                  </a>
-                )}
                 {laboratory.email && (
-                  <a 
+                  <a
                     href={`mailto:${laboratory.email}`}
                     className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   >
@@ -174,7 +233,7 @@ export default async function LaboratoryDetailPage({
                     Contact Lab
                   </a>
                 )}
-                <Link 
+                <Link
                   href="/contact"
                   className="inline-flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
@@ -183,7 +242,7 @@ export default async function LaboratoryDetailPage({
                 </Link>
               </div>
             </div>
-            
+
             {/* Image Column */}
             <div className="relative lg:block hidden">
               <div className="relative">
@@ -191,13 +250,13 @@ export default async function LaboratoryDetailPage({
                 <div className="relative overflow-hidden rounded-2xl shadow-2xl group">
                   <Image
                     src={laboratory.image || "/placeholder.svg"}
-                    alt={laboratory.name}
+                    alt={getLocalizedText(laboratory.name, 'Laboratory')}
                     width={600}
                     height={400}
                     className="w-full h-80 lg:h-96 object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
-                  
+
                   {/* Status badge on image */}
                   <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg">
                     <div className="flex items-center gap-2">
@@ -208,7 +267,7 @@ export default async function LaboratoryDetailPage({
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Decorative elements around image */}
                 <div className="absolute -top-4 -left-4 w-24 h-24 bg-blue-100/30 dark:bg-blue-900/20 rounded-full blur-xl animate-pulse" style={{ animationDuration: '3s' }}></div>
                 <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-emerald-100/30 dark:bg-emerald-900/20 rounded-full blur-xl animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}></div>
@@ -234,7 +293,7 @@ export default async function LaboratoryDetailPage({
           </Link>
           <span>/</span>
           <span className="text-slate-900 dark:text-slate-100 font-medium">
-            {laboratory.name}
+            {getLocalizedText(laboratory.name, 'Laboratory')}
           </span>
         </nav>
       </Section>
@@ -246,36 +305,36 @@ export default async function LaboratoryDetailPage({
           <div className="lg:col-span-2">
             <Tabs defaultValue={initialTab} className="w-full">
               <TabsList className="flex w-full mb-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1 shadow-sm overflow-x-auto gap-1">
-                <TabsTrigger 
-                  value="overview" 
+                <TabsTrigger
+                  value="overview"
                   className="flex items-center gap-2 data-[state=active]:bg-slate-100 data-[state=active]:dark:bg-slate-700 data-[state=active]:text-slate-900 data-[state=active]:dark:text-slate-100 py-2 px-3 rounded-md transition-colors text-slate-600 dark:text-slate-400 flex-shrink-0"
                 >
                   <BookOpen className="h-4 w-4" />
                   <span className="text-sm font-medium whitespace-nowrap">Overview</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="head" 
+                <TabsTrigger
+                  value="head"
                   className="flex items-center gap-2 data-[state=active]:bg-slate-100 data-[state=active]:dark:bg-slate-700 data-[state=active]:text-slate-900 data-[state=active]:dark:text-slate-100 py-2 px-3 rounded-md transition-colors text-slate-600 dark:text-slate-400 flex-shrink-0"
                 >
                   <UserCheck className="h-4 w-4" />
                   <span className="text-sm font-medium whitespace-nowrap">Lab Head</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="facilities" 
+                <TabsTrigger
+                  value="facilities"
                   className="flex items-center gap-2 data-[state=active]:bg-slate-100 data-[state=active]:dark:bg-slate-700 data-[state=active]:text-slate-900 data-[state=active]:dark:text-slate-100 py-2 px-3 rounded-md transition-colors text-slate-600 dark:text-slate-400 flex-shrink-0"
                 >
                   <Settings className="h-4 w-4" />
                   <span className="text-sm font-medium whitespace-nowrap">Facilities</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="research" 
+                <TabsTrigger
+                  value="research"
                   className="flex items-center gap-2 data-[state=active]:bg-slate-100 data-[state=active]:dark:bg-slate-700 data-[state=active]:text-slate-900 data-[state=active]:dark:text-slate-100 py-2 px-3 rounded-md transition-colors text-slate-600 dark:text-slate-400 flex-shrink-0"
                 >
                   <Target className="h-4 w-4" />
                   <span className="text-sm font-medium whitespace-nowrap">Research</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="contact" 
+                <TabsTrigger
+                  value="contact"
                   className="flex items-center gap-2 data-[state=active]:bg-slate-100 data-[state=active]:dark:bg-slate-700 data-[state=active]:text-slate-900 data-[state=active]:dark:text-slate-100 py-2 px-3 rounded-md transition-colors text-slate-600 dark:text-slate-400 flex-shrink-0"
                 >
                   <Phone className="h-4 w-4" />
@@ -289,12 +348,12 @@ export default async function LaboratoryDetailPage({
                   <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
                     Laboratory Overview
                   </h2>
-                  
+
                   <AnimatedSection animation="fade-up">
                     <Card className="border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800">
                       <CardContent className="px-6">
                         <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">
-                          {laboratory.description}
+                          {getLocalizedText(laboratory.description, '')}
                         </p>
                       </CardContent>
                     </Card>
@@ -354,7 +413,7 @@ export default async function LaboratoryDetailPage({
                         </CardHeader>
                         <CardContent>
                           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                            {laboratory.services_offered}
+                            {getLocalizedText(laboratory.services_offered, '')}
                           </p>
                         </CardContent>
                       </Card>
@@ -369,7 +428,7 @@ export default async function LaboratoryDetailPage({
                   <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
                     Laboratory Head
                   </h2>
-                  
+
                   {laboratory.head_name ? (
                     <AnimatedSection animation="fade-up">
                       <Card className="border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800">
@@ -380,21 +439,21 @@ export default async function LaboratoryDetailPage({
                               <div className="relative h-48 w-48 mx-auto md:mx-0">
                                 <Image
                                   src={laboratory.head_picture || "/placeholder.svg"}
-                                  alt={laboratory.head_name}
+                                  alt={getLocalizedText(laboratory.head_name, 'Laboratory Head')}
                                   fill
                                   className="object-cover rounded-xl shadow-lg"
                                 />
                               </div>
                             </div>
-                            
+
                             {/* Head Information */}
                             <div className="flex-1 space-y-4">
                               <div>
                                 <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                                  {laboratory.head_academic_title} {laboratory.head_name}
+                                  {getLocalizedText(laboratory.head_academic_title, '')} {getLocalizedText(laboratory.head_name, '')}
                                 </h3>
                                 <p className="text-lg text-slate-600 dark:text-slate-400">
-                                  {laboratory.head_title}
+                                  {getLocalizedText(laboratory.head_title, '')}
                                 </p>
                               </div>
 
@@ -402,7 +461,7 @@ export default async function LaboratoryDetailPage({
                                 <div>
                                   <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Biography</h4>
                                   <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                                    {laboratory.head_bio}
+                                    {getLocalizedText(laboratory.head_bio, '')}
                                   </p>
                                 </div>
                               )}
@@ -413,7 +472,7 @@ export default async function LaboratoryDetailPage({
                                 {laboratory.head_email && (
                                   <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                                     <Mail className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                                    <a 
+                                    <a
                                       href={`mailto:${laboratory.head_email}`}
                                       className="text-blue-600 dark:text-blue-400 hover:underline"
                                     >
@@ -424,7 +483,7 @@ export default async function LaboratoryDetailPage({
                                 {laboratory.head_cv_url && (
                                   <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                                     <FileText className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                                    <a 
+                                    <a
                                       href={laboratory.head_cv_url}
                                       target="_blank"
                                       rel="noopener noreferrer"
@@ -460,7 +519,7 @@ export default async function LaboratoryDetailPage({
                   <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
                     Facilities & Equipment
                   </h2>
-                  
+
                   {/* Facilities Description */}
                   {laboratory.facilities && (
                     <AnimatedSection animation="fade-up">
@@ -473,7 +532,7 @@ export default async function LaboratoryDetailPage({
                         </CardHeader>
                         <CardContent>
                           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                            {laboratory.facilities}
+                            {getLocalizedText(laboratory.facilities, '')}
                           </p>
                         </CardContent>
                       </Card>
@@ -492,7 +551,7 @@ export default async function LaboratoryDetailPage({
                         </CardHeader>
                         <CardContent>
                           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                            {laboratory.equipment_list}
+                            {getLocalizedText(laboratory.equipment_list, '')}
                           </p>
                         </CardContent>
                       </Card>
@@ -523,7 +582,7 @@ export default async function LaboratoryDetailPage({
                           <div className="flex items-start gap-3">
                             <MapPin className="h-4 w-4 text-slate-600 dark:text-slate-400 mt-0.5" />
                             <span className="text-slate-700 dark:text-slate-300">
-                              {laboratory.address}
+                              {getLocalizedText(laboratory.address, '')}
                             </span>
                           </div>
                         )}
@@ -539,7 +598,7 @@ export default async function LaboratoryDetailPage({
                   <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
                     Research Activities
                   </h2>
-                  
+
                   {laboratory.research_areas && (
                     <AnimatedSection animation="fade-up">
                       <Card className="border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800">
@@ -551,7 +610,7 @@ export default async function LaboratoryDetailPage({
                         </CardHeader>
                         <CardContent>
                           <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">
-                            {laboratory.research_areas}
+                            {getLocalizedText(laboratory.research_areas, '')}
                           </p>
                         </CardContent>
                       </Card>
@@ -569,7 +628,7 @@ export default async function LaboratoryDetailPage({
                         </CardHeader>
                         <CardContent>
                           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                            {laboratory.services_offered}
+                            {getLocalizedText(laboratory.services_offered, '')}
                           </p>
                         </CardContent>
                       </Card>
@@ -596,7 +655,7 @@ export default async function LaboratoryDetailPage({
                   <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
                     Contact Information
                   </h2>
-                  
+
                   <div className="grid md:grid-cols-2 gap-6">
                     {/* Contact Details */}
                     <AnimatedSection animation="fade-up">
@@ -613,7 +672,7 @@ export default async function LaboratoryDetailPage({
                               <Mail className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                               <div>
                                 <div className="text-sm text-slate-600 dark:text-slate-400">Email</div>
-                                <a 
+                                <a
                                   href={`mailto:${laboratory.email}`}
                                   className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
                                 >
@@ -627,7 +686,7 @@ export default async function LaboratoryDetailPage({
                               <Phone className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                               <div>
                                 <div className="text-sm text-slate-600 dark:text-slate-400">Phone</div>
-                                <a 
+                                <a
                                   href={`tel:${laboratory.phone}`}
                                   className="text-slate-900 dark:text-slate-100 font-medium hover:text-blue-600 dark:hover:text-blue-400"
                                 >
@@ -641,7 +700,7 @@ export default async function LaboratoryDetailPage({
                               <Phone className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                               <div>
                                 <div className="text-sm text-slate-600 dark:text-slate-400">Alternative Phone</div>
-                                <a 
+                                <a
                                   href={`tel:${laboratory.alternative_phone}`}
                                   className="text-slate-900 dark:text-slate-100 font-medium hover:text-blue-600 dark:hover:text-blue-400"
                                 >
@@ -666,7 +725,7 @@ export default async function LaboratoryDetailPage({
                               <Globe className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                               <div>
                                 <div className="text-sm text-slate-600 dark:text-slate-400">Website</div>
-                                <a 
+                                <a
                                   href={laboratory.website}
                                   target="_blank"
                                   rel="noopener noreferrer"
@@ -695,7 +754,7 @@ export default async function LaboratoryDetailPage({
                             <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                               <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">Address</h4>
                               <p className="text-slate-700 dark:text-slate-300">
-                                {laboratory.address}
+                                {getLocalizedText(laboratory.address, '')}
                               </p>
                             </div>
                           )}
@@ -709,10 +768,10 @@ export default async function LaboratoryDetailPage({
                               </p>
                             </div>
                           )}
-                          
+
                           {/* Quick Actions */}
                           <div className="flex flex-col gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-                            <Link 
+                            <Link
                               href="/contact"
                               className="w-full"
                             >
@@ -722,7 +781,7 @@ export default async function LaboratoryDetailPage({
                               </Button>
                             </Link>
                             {laboratory.email && (
-                              <a 
+                              <a
                                 href={`mailto:${laboratory.email}`}
                                 className="w-full"
                               >
@@ -786,7 +845,7 @@ export default async function LaboratoryDetailPage({
                   {/* Quick Actions */}
                   <div className="flex flex-col gap-2">
                     {laboratory.website && (
-                      <a 
+                      <a
                         href={laboratory.website}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -799,7 +858,7 @@ export default async function LaboratoryDetailPage({
                       </a>
                     )}
                     {laboratory.email && (
-                      <a 
+                      <a
                         href={`mailto:${laboratory.email}`}
                         className="w-full"
                       >
@@ -809,7 +868,7 @@ export default async function LaboratoryDetailPage({
                         </Button>
                       </a>
                     )}
-                    <Link 
+                    <Link
                       href="/contact"
                       className="w-full"
                     >

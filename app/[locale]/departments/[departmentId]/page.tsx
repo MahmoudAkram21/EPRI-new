@@ -42,12 +42,12 @@ export default async function DepartmentDetailPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ departmentId: string }>
+  params: Promise<{ departmentId: string; locale: string }>
   searchParams?: Promise<{ tab?: string }>
 }) {
-  const { departmentId } = await params
+  const { departmentId, locale } = await params
   const searchParamsResolved = await searchParams
-  
+
   const [department, laboratories] = await Promise.all([
     getDepartment(departmentId),
     getDepartmentLaboratories(departmentId)
@@ -61,6 +61,16 @@ export default async function DepartmentDetailPage({
     ? (searchParamsResolved!.tab as "about" | "laboratories" | "equipment" | "services" | "staff" | "gallery")
     : "about"
 
+  // Helper function to extract localized text from JSON fields
+  const getLocalizedText = (field: any, defaultValue: string = ''): string => {
+    if (!field) return defaultValue
+    if (typeof field === 'string') return field
+    if (typeof field === 'object') {
+      return field[locale] || field.en || field.ar || defaultValue
+    }
+    return defaultValue
+  }
+
   return (
     <PageContainer>
       {/* Hero Section */}
@@ -68,27 +78,27 @@ export default async function DepartmentDetailPage({
         {/* Department background image with overlay */}
         {department.image && (
           <div className="absolute inset-0">
-            <div 
+            <div
               className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5 dark:opacity-10"
               style={{ backgroundImage: `url('${department.image}')` }}
             ></div>
             <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-white/95 to-slate-50/90 dark:from-slate-900/90 dark:via-slate-800/95 dark:to-slate-900/90"></div>
           </div>
         )}
-        
+
         {/* Animated background elements */}
         <div className="absolute inset-0">
           {/* Floating animated orbs */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-50/30 to-transparent dark:from-blue-900/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
           <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-slate-100/40 to-transparent dark:from-slate-700/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }}></div>
           <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-gradient-to-bl from-emerald-50/20 to-transparent dark:from-emerald-900/10 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }}></div>
-          
+
           {/* Floating particles */}
           <div className="absolute top-20 left-1/4 w-2 h-2 bg-blue-400/30 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}></div>
           <div className="absolute top-32 right-1/3 w-1.5 h-1.5 bg-emerald-400/40 rounded-full animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }}></div>
           <div className="absolute bottom-40 left-1/2 w-1 h-1 bg-slate-400/50 rounded-full animate-bounce" style={{ animationDelay: '2s', animationDuration: '5s' }}></div>
           <div className="absolute top-40 right-1/2 w-2.5 h-2.5 bg-blue-300/20 rounded-full animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '3.5s' }}></div>
-          
+
           {/* Moving gradient lines */}
           <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-200/50 to-transparent animate-pulse dark:via-blue-800/30" style={{ animationDuration: '3s' }}></div>
           <div className="absolute bottom-0 right-0 w-full h-px bg-gradient-to-l from-transparent via-slate-200/50 to-transparent animate-pulse dark:via-slate-700/30" style={{ animationDuration: '4s', animationDelay: '1.5s' }}></div>
@@ -104,7 +114,7 @@ export default async function DepartmentDetailPage({
                   Research Department
                 </Badge>
               </div>
-              
+
               <AnimatedSection animation="fade-up">
                 <div className="text-6xl mb-4 filter drop-shadow-lg">{department.icon}</div>
                 <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-100 dark:via-white dark:to-slate-100 bg-clip-text text-transparent leading-tight">
@@ -155,7 +165,7 @@ export default async function DepartmentDetailPage({
                 </div>
               </div>
             </div>
-            
+
             {/* Image Column */}
             <div className="relative lg:block hidden">
               <div className="relative">
@@ -169,7 +179,7 @@ export default async function DepartmentDetailPage({
                     className="w-full h-80 lg:h-96 object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
-                  
+
                   {/* Floating badge on image */}
                   <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg">
                     <div className="flex items-center gap-2">
@@ -178,7 +188,7 @@ export default async function DepartmentDetailPage({
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Decorative elements around image */}
                 <div className="absolute -top-4 -left-4 w-24 h-24 bg-blue-100/30 dark:bg-blue-900/20 rounded-full blur-xl animate-pulse" style={{ animationDuration: '3s' }}></div>
                 <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-emerald-100/30 dark:bg-emerald-900/20 rounded-full blur-xl animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}></div>
@@ -197,43 +207,43 @@ export default async function DepartmentDetailPage({
           <div className="lg:col-span-2">
             <Tabs defaultValue={initialTab} className="w-full">
               <TabsList className="flex w-full mb-8 bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-2 shadow-lg overflow-x-auto gap-2">
-                <TabsTrigger 
-                  value="about" 
+                <TabsTrigger
+                  value="about"
                   className="flex items-center gap-2.5 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-500/30 data-[state=active]:border-blue-500 py-3 px-5 rounded-lg transition-all duration-300 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 flex-shrink-0 border-2 border-transparent font-semibold text-sm"
                 >
                   <BookOpen className="h-5 w-5 data-[state=active]:text-white" />
                   <span className="whitespace-nowrap">About</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="laboratories" 
+                <TabsTrigger
+                  value="laboratories"
                   className="flex items-center gap-2.5 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-500/30 data-[state=active]:border-blue-500 py-3 px-5 rounded-lg transition-all duration-300 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 flex-shrink-0 border-2 border-transparent font-semibold text-sm"
                 >
                   <FlaskConical className="h-5 w-5 data-[state=active]:text-white" />
                   <span className="whitespace-nowrap">Laboratories</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="equipment" 
+                <TabsTrigger
+                  value="equipment"
                   className="flex items-center gap-2.5 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-500/30 data-[state=active]:border-blue-500 py-3 px-5 rounded-lg transition-all duration-300 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 flex-shrink-0 border-2 border-transparent font-semibold text-sm"
                 >
                   <Microscope className="h-5 w-5 data-[state=active]:text-white" />
                   <span className="whitespace-nowrap">Equipment</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="services" 
+                <TabsTrigger
+                  value="services"
                   className="flex items-center gap-2.5 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-500/30 data-[state=active]:border-blue-500 py-3 px-5 rounded-lg transition-all duration-300 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 flex-shrink-0 border-2 border-transparent font-semibold text-sm"
                 >
                   <FlaskConical className="h-5 w-5 data-[state=active]:text-white" />
                   <span className="whitespace-nowrap">Services</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="staff" 
+                <TabsTrigger
+                  value="staff"
                   className="flex items-center gap-2.5 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-500/30 data-[state=active]:border-blue-500 py-3 px-5 rounded-lg transition-all duration-300 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 flex-shrink-0 border-2 border-transparent font-semibold text-sm"
                 >
                   <Users className="h-5 w-5 data-[state=active]:text-white" />
                   <span className="whitespace-nowrap">Staff</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="gallery" 
+                <TabsTrigger
+                  value="gallery"
                   className="flex items-center gap-2.5 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-500/30 data-[state=active]:border-blue-500 py-3 px-5 rounded-lg transition-all duration-300 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 flex-shrink-0 border-2 border-transparent font-semibold text-sm"
                 >
                   <Images className="h-5 w-5 data-[state=active]:text-white" />
@@ -297,9 +307,9 @@ export default async function DepartmentDetailPage({
                         <CardContent className="px-6">
                           <div className="flex flex-wrap gap-3">
                             {department.researchAreas.map((area: string, index: number) => (
-                              <Badge 
-                                key={index} 
-                                variant="outline" 
+                              <Badge
+                                key={index}
+                                variant="outline"
                                 className="px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700/50 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                               >
                                 {area}
@@ -312,20 +322,20 @@ export default async function DepartmentDetailPage({
                   </AnimatedSection>
                 )}
 
-                {(!department.achievements || department.achievements.length === 0) && 
-                 (!department.researchAreas || department.researchAreas.length === 0) && (
-                  <AnimatedSection animation="fade-up" delay={0.1}>
-                    <Card className="border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800 mt-8">
-                      <CardContent className="pt-6 text-center">
-                        <BookOpen className="h-12 w-12 mx-auto mb-4 text-slate-400 dark:text-slate-500" />
-                        <h3 className="font-semibold mb-2 text-slate-900 dark:text-slate-100">Additional Information</h3>
-                        <p className="text-slate-600 dark:text-slate-400">
-                          More detailed information about achievements and research areas will be available soon.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </AnimatedSection>
-                )}
+                {(!department.achievements || department.achievements.length === 0) &&
+                  (!department.researchAreas || department.researchAreas.length === 0) && (
+                    <AnimatedSection animation="fade-up" delay={0.1}>
+                      <Card className="border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800 mt-8">
+                        <CardContent className="pt-6 text-center">
+                          <BookOpen className="h-12 w-12 mx-auto mb-4 text-slate-400 dark:text-slate-500" />
+                          <h3 className="font-semibold mb-2 text-slate-900 dark:text-slate-100">Additional Information</h3>
+                          <p className="text-slate-600 dark:text-slate-400">
+                            More detailed information about achievements and research areas will be available soon.
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </AnimatedSection>
+                  )}
               </TabsContent>
 
               <TabsContent value="laboratories" className="mt-0">
@@ -344,7 +354,7 @@ export default async function DepartmentDetailPage({
                                 <div className="relative h-48 md:h-full">
                                   <Image
                                     src={laboratory.image || "/placeholder.svg"}
-                                    alt={laboratory.name}
+                                    alt={getLocalizedText(laboratory.name, 'Laboratory')}
                                     fill
                                     className="object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
                                   />
@@ -357,22 +367,22 @@ export default async function DepartmentDetailPage({
                                   )}
                                 </div>
                               </div>
-                              
+
                               {/* Laboratory Content */}
                               <div className="md:w-2/3 p-6">
                                 <CardHeader className="px-0 pt-0">
                                   <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                       <CardTitle className="text-xl text-slate-900 dark:text-slate-100 mb-2">
-                                        {laboratory.name}
+                                        {getLocalizedText(laboratory.name, 'Laboratory')}
                                       </CardTitle>
                                       <CardDescription className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        {laboratory.description}
+                                        {getLocalizedText(laboratory.description, '')}
                                       </CardDescription>
                                     </div>
                                   </div>
                                 </CardHeader>
-                                
+
                                 <CardContent className="px-0 space-y-4">
                                   {/* Laboratory Head */}
                                   {laboratory.head_name && (
@@ -381,7 +391,7 @@ export default async function DepartmentDetailPage({
                                         <div className="relative h-12 w-12 flex-shrink-0">
                                           <Image
                                             src={laboratory.head_picture}
-                                            alt={laboratory.head_name}
+                                            alt={getLocalizedText(laboratory.head_name, 'Laboratory Head')}
                                             fill
                                             className="object-cover rounded-full"
                                           />
@@ -389,13 +399,13 @@ export default async function DepartmentDetailPage({
                                       )}
                                       <div className="flex-1 min-w-0">
                                         <p className="font-medium text-slate-900 dark:text-slate-100">
-                                          {laboratory.head_academic_title} {laboratory.head_name}
+                                          {getLocalizedText(laboratory.head_academic_title, '')} {getLocalizedText(laboratory.head_name, '')}
                                         </p>
                                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                                          {laboratory.head_title}
+                                          {getLocalizedText(laboratory.head_title, '')}
                                         </p>
                                         {laboratory.head_email && (
-                                          <a 
+                                          <a
                                             href={`mailto:${laboratory.head_email}`}
                                             className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-1"
                                           >
@@ -458,32 +468,21 @@ export default async function DepartmentDetailPage({
                                     <div>
                                       <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">Research Areas</h4>
                                       <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        {laboratory.research_areas}
+                                        {getLocalizedText(laboratory.research_areas, '')}
                                       </p>
                                     </div>
                                   )}
 
                                   {/* Actions */}
                                   <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                    {laboratory.website && (
-                                      <a 
-                                        href={laboratory.website}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                                      >
-                                        <ExternalLink className="h-4 w-4" />
-                                        Visit Website
-                                      </a>
-                                    )}
-                                    <Link 
+                                    <Link
                                       href={`/laboratories/${laboratory.id}`}
                                       className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
                                     >
                                       <BookOpen className="h-4 w-4" />
                                       View Details
                                     </Link>
-                                    <Link 
+                                    <Link
                                       href="/contact"
                                       className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
                                     >
@@ -526,10 +525,10 @@ export default async function DepartmentDetailPage({
                     <div className="grid md:grid-cols-2 gap-6">
                       {department.equipment.map((equipment: any, index: number) => (
                         <AnimatedSection key={equipment.id} animation="fade-up" delay={index * 0.1}>
-                          <EquipmentCard 
-                            equipment={equipment} 
-                            department={department.name} 
-                            departmentId={department.id} 
+                          <EquipmentCard
+                            equipment={equipment}
+                            department={department.name}
+                            departmentId={department.id}
                           />
                         </AnimatedSection>
                       ))}
@@ -560,7 +559,7 @@ export default async function DepartmentDetailPage({
                           <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 group overflow-hidden relative">
                             {/* Decorative gradient overlay on hover */}
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 transition-all duration-300 pointer-events-none"></div>
-                            
+
                             <CardHeader className="relative z-10">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">

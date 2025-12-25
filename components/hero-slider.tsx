@@ -389,8 +389,8 @@ export function HeroSlider() {
                 >
                   <div className="relative inline-block">
                     {/* Glowing background layers */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-full blur-2xl opacity-60 animate-pulse" />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-pink-400 via-red-500 to-yellow-500 rounded-full blur-xl opacity-40 animate-pulse" style={{ animationDelay: '0.5s' }} />
+                    <div className="absolute inset-0 bg-linear-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-full blur-2xl opacity-60 animate-pulse" />
+                    <div className="absolute inset-0 bg-linear-to-tr from-pink-400 via-red-500 to-yellow-500 rounded-full blur-xl opacity-40 animate-pulse" style={{ animationDelay: '0.5s' }} />
                     
                     {/* Icon container */}
                     <div className="relative bg-white/10 backdrop-blur-md border-2 border-white/30 rounded-2xl p-3 sm:p-4 shadow-2xl">
@@ -406,7 +406,7 @@ export function HeroSlider() {
                   transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
                   className="mb-6 inline-block"
                 >
-                  <Badge className="bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 backdrop-blur-md border-cyan-300/50 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base font-semibold flex items-center gap-2 shadow-lg shadow-cyan-500/20">
+                  <Badge className="bg-linear-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 backdrop-blur-md border-cyan-300/50 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base font-semibold flex items-center gap-2 shadow-lg shadow-cyan-500/20">
                     <Icon className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse" />
                     {currentSlideData.badge}
                   </Badge>
@@ -448,7 +448,7 @@ export function HeroSlider() {
                 >
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:from-cyan-600 hover:via-blue-600 hover:to-purple-700 text-white border-0 shadow-xl shadow-blue-500/50 hover:shadow-2xl hover:shadow-blue-600/50 transition-all duration-300 hover:scale-105 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3"
+                    className="bg-linear-to-r from-cyan-500 via-blue-500 to-purple-600 hover:from-cyan-600 hover:via-blue-600 hover:to-purple-700 text-white border-0 shadow-xl shadow-blue-500/50 hover:shadow-2xl hover:shadow-blue-600/50 transition-all duration-300 hover:scale-105 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3"
                     asChild
                   >
                     <Link href={currentSlideData.ctaLink}>
@@ -474,11 +474,11 @@ export function HeroSlider() {
                     className="relative group"
                   >
                     {/* Glowing gradient background */}
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-2xl opacity-0 group-hover:opacity-75 blur transition-all duration-300" />
+                    <div className="absolute -inset-0.5 bg-linear-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-2xl opacity-0 group-hover:opacity-75 blur transition-all duration-300" />
                     
                     {/* Card content */}
                     <div className="relative bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 xl:p-6 hover:bg-white/15 transition-all duration-300 hover:scale-105 hover:border-white/30">
-                      <div className="text-3xl xl:text-4xl 2xl:text-5xl font-bold bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent mb-2">
+                      <div className="text-3xl xl:text-4xl 2xl:text-5xl font-bold bg-linear-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent mb-2">
                         {stat.value}
                       </div>
                       <div className="text-base xl:text-lg text-white/90">{stat.label}</div>

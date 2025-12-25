@@ -22,7 +22,7 @@ export function NewsCarousel({ news }: NewsCarouselProps) {
       align: "start",
       slidesToScroll: 1,
     },
-    [Autoplay({ delay: 4000, stopOnInteraction: false })]
+    [Autoplay({ delay: 4000, stopOnInteraction: false })] as any
   )
 
   const scrollPrev = useCallback(() => {
@@ -57,7 +57,7 @@ export function NewsCarousel({ news }: NewsCarouselProps) {
                     />
                     
                     {/* Dark Gradient Overlay at bottom for text readability - stronger gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+                    <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/50 to-transparent"></div>
                     
                     {/* Title overlaid on gradient at bottom */}
                     <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5 lg:p-6">
